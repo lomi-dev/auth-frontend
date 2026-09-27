@@ -1,0 +1,41 @@
+{
+	admin off
+	log {
+		level ERROR
+	}
+}
+
+{$AUTH_SITE:auth.lomi.dev} {
+	root * /srv
+	encode zstd gzip
+	header {
+		-Server
+		Cache-Control "no-store"
+		Referrer-Policy "no-referrer"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Strict-Transport-Security "max-age=31536000"
+		Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
+	}
+	@api path /api/auth/* /v1/* /health/*
+	handle @api {
+		request_body {
+			max_size 16KB
+		}
+		reverse_proxy {$AUTH_UPSTREAM:api:3001} {
+			header_up X-Forwarded-For {remote_host}
+			header_up -X-Real-IP
+			header_up -CF-Connecting-IP
+			header_up -True-Client-IP
+			header_up -Forwarded
+			transport http {
+				dial_timeout 3s
+				response_header_timeout 20s
+			}
+		}
+	}
+	handle {
+		file_server
+	}
+}

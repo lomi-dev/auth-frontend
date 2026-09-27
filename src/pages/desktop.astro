@@ -1,0 +1,42 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Signing in"
+  description="Complete sign-in to Lomi desktop."
+  pageClass="page-desktop"
+  currentPage="desktop"
+>
+  <section class="desktop-card panel" aria-labelledby="desktop-title">
+    <h1 id="desktop-title">Signing in to Lomi</h1>
+    <p id="desktop-status" class="copy" role="status" aria-live="polite">Checking your Lomi session…</p>
+    <p id="desktop-error" class="notice notice-danger" role="alert" hidden></p>
+    <noscript>
+      <p class="notice notice-warning">Turn on JavaScript, then start sign-in again in Lomi.</p>
+    </noscript>
+  </section>
+</BaseLayout>
+
+<script src="../scripts/desktop.ts"></script>
+
+<style>
+  .desktop-card {
+    width: min(100%, 360px);
+    padding: 24px;
+    text-align: center;
+  }
+
+  .desktop-card h1 {
+    margin-bottom: 10px;
+    font-size: 22px;
+  }
+
+  .desktop-card .copy {
+    margin-bottom: 0;
+  }
+
+  .desktop-card .notice {
+    margin: 16px 0 0;
+  }
+</style>

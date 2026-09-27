@@ -1,0 +1,37 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+  pageClass?: string;
+  currentPage?: "account" | "login" | "device" | "result" | "error" | "desktop";
+}
+
+const { title, description, pageClass = "", currentPage = "login" } = Astro.props;
+const isAccount = currentPage === "account";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F7F8F3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#101114" media="(prefers-color-scheme: dark)" />
+    <meta name="description" content={description} />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/svg+xml" href="/icons/lomi-v1.3.svg?v=blue" />
+    <title>{title} · Lomi</title>
+  </head>
+  <body class={pageClass} data-page={currentPage}>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <div class="site-shell">
+      <main id="main-content" tabindex="-1" class:list={["main-content", isAccount && "main-content-account"]}>
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

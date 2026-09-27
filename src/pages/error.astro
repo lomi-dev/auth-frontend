@@ -1,0 +1,91 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Sign-in issue"
+  description="Review a sign-in issue and return safely to Lomi."
+  pageClass="page-error"
+  currentPage="error"
+>
+  <section class="error-panel panel" aria-labelledby="error-title">
+    <div class="error-symbol" aria-hidden="true">!</div>
+    <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Sign-in issue</span>
+    <h1 id="error-title">We couldn’t finish sign-in.</h1>
+    <p id="error-copy" class="copy">The request did not complete. You can try signing in again when you’re ready.</p>
+    <div id="error-request" class="error-request" hidden>
+      <span>Request reference</span>
+      <code id="error-request-id"></code>
+    </div>
+    <a id="error-retry" class="button button-primary button-full" href="/login" hidden>Try again</a>
+    <a id="error-back" class="error-back" href="/login" hidden>Back to Lomi account</a>
+    <noscript><p class="copy">Turn on JavaScript to review this sign-in issue. For desktop sign-in, start again in Lomi.</p></noscript>
+  </section>
+</BaseLayout>
+
+<script src="../scripts/error.ts"></script>
+
+<style>
+  .error-panel {
+    width: min(100%, 465px);
+    padding: clamp(27px, 6vw, 45px);
+    text-align: center;
+  }
+
+  .error-symbol {
+    display: grid;
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 19px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--warning) 27%, var(--line));
+    border-radius: 18px;
+    background: var(--warning-bg);
+    color: var(--warning);
+    font-size: 27px;
+    font-weight: 800;
+  }
+
+  .error-panel .eyebrow {
+    justify-content: center;
+  }
+
+  .error-panel h1 {
+    margin-top: 12px;
+    font-size: clamp(32px, 6vw, 41px);
+  }
+
+  .error-panel .copy {
+    margin-bottom: 24px;
+    font-size: 13px;
+  }
+
+  .error-request {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-bottom: 18px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--canvas-raised);
+    padding: 10px;
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+
+  .error-request code {
+    color: var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+
+  .error-back {
+    display: inline-block;
+    margin-top: 17px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-underline-offset: 3px;
+  }
+</style>

@@ -1,0 +1,616 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Your account"
+  description="Manage your Lomi profile and active sessions."
+  pageClass="page-account"
+  currentPage="account"
+>
+  <div class="account-layout">
+    <div class="account-heading">
+      <div>
+        <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Account settings</span>
+        <h1>Your Lomi account</h1>
+        <p class="copy">Your profile and the devices signed in to Lomi.</p>
+      </div>
+      <a class="account-home-link" href="/login">Lomi account <span aria-hidden="true">↗</span></a>
+    </div>
+
+    <p id="account-status" class="notice notice-info account-status" role="status" aria-live="polite">
+      Loading your account…
+    </p>
+
+    <section id="account-content" class="account-grid" hidden aria-label="Account details">
+      <div class="account-column">
+        <section class="account-card panel profile-card" aria-labelledby="profile-title">
+          <div class="section-heading">
+            <div>
+              <span class="section-kicker">Your profile</span>
+              <h2 id="profile-title">Account details</h2>
+            </div>
+            <span class="profile-readonly">From GitHub</span>
+          </div>
+          <div class="profile-identity">
+            <span id="profile-avatar" class="avatar profile-avatar" aria-hidden="true">L</span>
+            <span class="profile-name-wrap"><strong id="profile-name">Lomi account</strong><small id="profile-handle"></small></span>
+          </div>
+          <dl class="profile-details">
+            <div><dt>Email</dt><dd id="profile-email">Loading…</dd></div>
+            <div><dt>Account status</dt><dd><span id="profile-status" class="status-pill"><span class="status-pill-dot" aria-hidden="true"></span><span>Active</span></span></dd></div>
+          </dl>
+          <p class="profile-footnote">Profile details are managed by GitHub and shown here for your Lomi account.</p>
+        </section>
+
+        <section class="account-card panel sessions-card" aria-labelledby="sessions-title">
+          <div class="section-heading sessions-heading">
+            <div>
+              <span class="section-kicker">Access</span>
+              <h2 id="sessions-title">Active sessions</h2>
+              <p class="section-description">Manage browsers and Lomi desktop sessions that can access your account.</p>
+            </div>
+            <span id="session-count" class="count-pill" aria-label="Session count">—</span>
+          </div>
+          <p id="session-list-status" class="loading-line" role="status" aria-live="polite">Loading sessions…</p>
+          <ul id="sessions-list" class="sessions-list" aria-label="Active Lomi sessions"></ul>
+          <div id="sessions-empty" class="sessions-empty" hidden>
+            <span class="empty-mark" aria-hidden="true">✓</span>
+            <strong>No active sessions returned</strong>
+            <span>Refresh the list to check again.</span>
+          </div>
+          <button id="load-more-sessions" class="button button-secondary button-small load-more" type="button" hidden>Load more sessions</button>
+          <div class="revoke-all-wrap">
+            <div>
+              <strong>Sign out everywhere</strong>
+              <span>This includes Lomi desktop and this browser.</span>
+            </div>
+            <button id="revoke-all-sessions" class="button button-danger button-small" type="button">Revoke all</button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="account-aside" aria-label="Account security">
+        <section class="security-card panel">
+          <span class="security-shield" aria-hidden="true">
+            <svg viewBox="0 0 24 24" focusable="false"><path d="M12 2.5 4.5 5.55v5.1c0 4.7 3.14 8.95 7.5 10.35 4.36-1.4 7.5-5.65 7.5-10.35v-5.1L12 2.5Zm0 2.1 5.5 2.24v3.81c0 3.58-2.25 6.97-5.5 8.22-3.25-1.25-5.5-4.64-5.5-8.22V6.84L12 4.6Zm-.72 3.13v4.08l-1.5-1.5-1.33 1.32 3.77 3.76 5.31-5.3-1.32-1.33-3.57 3.57V7.73h-1.36Z" /></svg>
+          </span>
+          <span class="section-kicker">Your security</span>
+          <h2>Only devices you trust.</h2>
+          <p>Review your sessions regularly. Revoke any browser or desktop you no longer use.</p>
+          <div class="security-fact"><span class="security-check" aria-hidden="true">✓</span><span>Session tokens are never shown in this portal.</span></div>
+        </section>
+
+        <section class="signout-card" aria-labelledby="signout-title">
+          <div>
+            <h3 id="signout-title">Done for now?</h3>
+            <p>Sign out of this browser. Your Lomi desktop sessions stay signed in.</p>
+          </div>
+          <button id="sign-out" class="button button-secondary button-small" type="button">Sign out</button>
+        </section>
+      </aside>
+    </section>
+
+    <section id="reauth-panel" class="reauth-panel notice notice-warning" hidden aria-labelledby="reauth-title">
+      <div class="notice-row">
+        <span class="notice-mark" aria-hidden="true">!</span>
+        <div class="reauth-copy">
+          <strong id="reauth-title">Verify with GitHub to continue</strong>
+          <p id="reauth-description">A fresh sign-in is required for this account security change.</p>
+          <button id="reauth-start" class="button button-secondary button-small" type="button">Verify with GitHub</button>
+          <button id="reauth-continue" class="button button-primary button-small" type="button" hidden>Continue revoking sessions</button>
+        </div>
+      </div>
+    </section>
+
+    <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-copy">
+      <div class="confirm-mark" aria-hidden="true">!</div>
+      <h2 id="confirm-title">Revoke this session?</h2>
+      <p id="confirm-copy">The selected session will no longer be able to access Lomi.</p>
+      <div class="confirm-actions">
+        <button id="confirm-cancel" class="button button-secondary" type="button">Cancel</button>
+        <button id="confirm-action" class="button button-danger" type="button">Revoke session</button>
+      </div>
+    </dialog>
+
+    <noscript><p class="notice notice-warning">Turn on JavaScript to manage your Lomi account and sessions.</p></noscript>
+  </div>
+</BaseLayout>
+
+<script src="../scripts/account.ts"></script>
+
+<style>
+  .account-layout {
+    width: min(100%, 1060px);
+    margin: 0 auto;
+  }
+
+  .account-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 25px;
+  }
+
+  .account-heading h1 {
+    margin: 11px 0 6px;
+    font-size: clamp(34px, 5vw, 48px);
+  }
+
+  .account-heading .copy {
+    margin-bottom: 0;
+    font-size: 13px;
+  }
+
+  .account-home-link {
+    margin-bottom: 7px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .account-home-link span {
+    margin-left: 4px;
+    color: var(--text-soft);
+  }
+
+  .account-status {
+    margin-bottom: 18px;
+  }
+
+  .account-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 265px;
+    align-items: start;
+    gap: 19px;
+  }
+
+  .account-column {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .account-card {
+    min-width: 0;
+    padding: 24px;
+    border-radius: 22px;
+    box-shadow: 0 12px 35px rgba(31, 38, 20, 0.045);
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 15px;
+  }
+
+  .section-kicker {
+    display: inline-block;
+    margin-bottom: 6px;
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .section-heading h2 {
+    margin-bottom: 0;
+    font-size: 19px;
+  }
+
+  .profile-readonly,
+  .count-pill {
+    display: inline-flex;
+    min-height: 26px;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 99px;
+    padding: 0 9px;
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .profile-identity {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    margin: 19px 0 18px;
+  }
+
+  .profile-avatar {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border-color: color-mix(in srgb, var(--lime) 45%, var(--line));
+    background: var(--lime);
+    color: var(--lime-ink);
+    font-size: 19px;
+  }
+
+  .profile-name-wrap {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .profile-name-wrap strong {
+    overflow: hidden;
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .profile-name-wrap small {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  .profile-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 0;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+
+  .profile-details div {
+    min-width: 0;
+  }
+
+  .profile-details dt {
+    margin-bottom: 5px;
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .profile-details dd {
+    margin: 0;
+    overflow: hidden;
+    font-size: 12px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 99px;
+    background: var(--success-bg);
+    color: var(--success);
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+
+  .status-pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .profile-footnote {
+    margin: 15px 0 0;
+    color: var(--text-muted);
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .sessions-heading {
+    margin-bottom: 17px;
+  }
+
+  .section-description {
+    max-width: 455px;
+    margin: 7px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .count-pill {
+    min-width: 27px;
+    justify-content: center;
+    padding: 0 8px;
+    background: var(--surface-soft);
+    color: var(--text);
+  }
+
+  .sessions-card .loading-line {
+    margin-bottom: 8px;
+  }
+
+  .sessions-card .session-error {
+    color: var(--danger);
+  }
+
+  .sessions-list {
+    display: flex;
+    margin: 0;
+    flex-direction: column;
+    padding: 0;
+    list-style: none;
+  }
+
+  .sessions-empty {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 5px;
+    border-top: 1px solid var(--line);
+    padding: 24px 10px 19px;
+    text-align: center;
+  }
+
+  .empty-mark {
+    display: grid;
+    width: 35px;
+    height: 35px;
+    margin-bottom: 4px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--success-bg);
+    color: var(--success);
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  .sessions-empty strong {
+    font-size: 12px;
+  }
+
+  .sessions-empty span:last-child {
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+
+  .load-more {
+    margin-top: 4px;
+  }
+
+  .revoke-all-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 11px;
+    border-top: 1px solid var(--line);
+    padding-top: 17px;
+  }
+
+  .revoke-all-wrap div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .revoke-all-wrap strong {
+    font-size: 11px;
+  }
+
+  .revoke-all-wrap span {
+    max-width: 220px;
+    margin-top: 3px;
+    color: var(--text-muted);
+    font-size: 9px;
+    line-height: 1.45;
+  }
+
+  .account-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .security-card {
+    padding: 22px 20px;
+    border-radius: 20px;
+    box-shadow: 0 12px 35px rgba(31, 38, 20, 0.045);
+  }
+
+  .security-shield {
+    display: grid;
+    width: 43px;
+    height: 43px;
+    margin-bottom: 17px;
+    place-items: center;
+    border-radius: 15px;
+    background: var(--lime);
+    color: var(--lime-ink);
+  }
+
+  .security-shield svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+  }
+
+  .security-card h2 {
+    margin-bottom: 8px;
+    font-size: 18px;
+  }
+
+  .security-card p {
+    margin-bottom: 18px;
+    color: var(--text-muted);
+    font-size: 11px;
+    line-height: 1.6;
+  }
+
+  .security-fact {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+    color: var(--text-soft);
+    font-size: 10px;
+    line-height: 1.45;
+  }
+
+  .security-check {
+    display: grid;
+    width: 17px;
+    height: 17px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--success-bg);
+    color: var(--success);
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .signout-card {
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--surface) 60%, transparent);
+    padding: 17px;
+  }
+
+  .signout-card h3 {
+    margin-bottom: 5px;
+    font-size: 12px;
+  }
+
+  .signout-card p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .reauth-panel {
+    margin-top: 18px;
+  }
+
+  .reauth-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 7px;
+  }
+
+  .reauth-copy p {
+    margin: 0 0 4px;
+  }
+
+  .confirm-dialog {
+    width: min(calc(100% - 32px), 420px);
+    border: 1px solid var(--line-strong);
+    border-radius: 24px;
+    background: var(--surface);
+    color: var(--text);
+    padding: 27px;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  }
+
+  .confirm-dialog::backdrop {
+    background: rgba(13, 17, 10, 0.52);
+    backdrop-filter: blur(3px);
+  }
+
+  .confirm-dialog[open] {
+    animation: dialog-in 150ms ease-out both;
+  }
+
+  @keyframes dialog-in {
+    from { transform: translateY(6px) scale(0.985); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  .confirm-mark {
+    display: grid;
+    width: 41px;
+    height: 41px;
+    margin-bottom: 15px;
+    place-items: center;
+    border-radius: 14px;
+    background: var(--warning-bg);
+    color: var(--warning);
+    font-size: 18px;
+    font-weight: 800;
+  }
+
+  .confirm-dialog h2 {
+    margin-bottom: 8px;
+    font-size: 21px;
+  }
+
+  .confirm-dialog p {
+    margin-bottom: 21px;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+  }
+
+  @media (max-width: 860px) {
+    .account-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .account-aside {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .account-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .account-heading h1 {
+      font-size: 36px;
+    }
+
+    .account-home-link {
+      margin: 0;
+    }
+
+    .account-card {
+      padding: 19px 16px;
+    }
+
+    .account-aside {
+      grid-template-columns: 1fr;
+    }
+
+    .profile-details {
+      grid-template-columns: 1fr;
+    }
+
+    .revoke-all-wrap {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
+    .confirm-dialog {
+      padding: 22px;
+    }
+  }
+</style>

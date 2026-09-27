@@ -1,0 +1,420 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Connect Lomi desktop"
+  description="Review and approve a Lomi desktop sign-in request."
+  pageClass="page-device"
+  currentPage="device"
+>
+  <section class="device-panel panel" aria-labelledby="device-title">
+    <div class="device-heading">
+      <span class="device-symbol" aria-hidden="true">
+        <svg viewBox="0 0 32 32" focusable="false"><path d="M9 5.5h14A2.5 2.5 0 0 1 25.5 8v10A2.5 2.5 0 0 1 23 20.5h-5.5l.75 3H21v2H11v-2h2.75l.75-3H9A2.5 2.5 0 0 1 6.5 18V8A2.5 2.5 0 0 1 9 5.5Zm-.5 2.5v10h15V8h-15Z" /></svg>
+      </span>
+      <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Device sign-in</span>
+      <h1 id="device-title">Connect Lomi desktop</h1>
+      <p class="copy">Confirm the short code shown in the Lomi app to connect this device to your account.</p>
+    </div>
+
+    <p id="device-status" class="notice notice-info status-message" role="status" aria-live="polite">
+      Checking your Lomi session…
+    </p>
+    <div id="device-retry" class="device-retry" hidden>
+      <button id="retry-session-check" class="button button-secondary button-small" type="button">Check again</button>
+    </div>
+
+    <section id="device-no-session" class="device-state" hidden aria-labelledby="device-sign-in-title">
+      <h2 id="device-sign-in-title">Sign in to continue</h2>
+      <p class="muted">Use the GitHub account you want to connect to Lomi desktop.</p>
+      <a id="device-login-link" class="button button-primary button-full" href="/login">Sign in with GitHub</a>
+      <p class="device-footnote">After sign-in, you’ll return here to check the code.</p>
+    </section>
+
+    <section id="device-session" class="device-state" hidden aria-label="Device sign-in review">
+      <div class="device-account" id="device-account">
+        <span id="device-avatar" class="avatar avatar-small" aria-hidden="true">L</span>
+        <span class="device-account-copy"><strong id="device-name">Lomi account</strong><small id="device-email"></small></span>
+        <button class="text-button" id="device-switch-account" type="button">Switch account</button>
+      </div>
+
+      <form id="device-code-form" class="device-code-form" method="post" action="/device">
+        <label class="field-label" id="code-title" for="device-code">Enter the code from Lomi desktop</label>
+        <div class="code-input-row">
+          <input
+            class="text-input code-input"
+            id="device-code"
+            name="userCode"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            maxlength="11"
+            pattern="[A-HJ-NP-Z2-9a-hj-np-z2-9\s-]{8,11}"
+            aria-describedby="device-code-help device-code-error"
+            aria-invalid="false"
+            placeholder="ABCD EFGH"
+            required
+          />
+          <button id="check-device-code" class="button button-primary" type="submit">Check code</button>
+        </div>
+        <p id="device-code-help" class="field-help">Enter all 8 characters. Letters I and O are not used.</p>
+        <p id="device-code-error" class="field-error" role="alert" hidden></p>
+      </form>
+
+      <div id="device-review" class="device-review" hidden aria-labelledby="review-title">
+        <div class="review-divider"><span>REQUEST DETAILS</span></div>
+        <div class="review-app">
+          <span class="review-app-icon" aria-hidden="true"><img src="/icons/lomi-v1.3.svg" alt="" width="18" height="18" /></span>
+          <span><small>App requesting access</small><strong id="review-client">Lomi desktop</strong></span>
+          <span class="review-check" aria-hidden="true">✓</span>
+        </div>
+        <div class="review-code-wrap">
+          <span class="review-label">MATCH THIS CODE</span>
+          <strong id="review-code" class="review-code">ABCD EFGH</strong>
+        </div>
+        <div id="review-expiry" class="notice notice-warning review-expiry">
+          <div class="notice-row"><span class="notice-mark" aria-hidden="true">!</span><span><strong>Keep your code private.</strong> Device codes expire automatically. Lomi desktop will tell you if this one has expired.</span></div>
+        </div>
+        <div class="notice notice-info device-safety-note">
+          <div class="notice-row"><span class="notice-mark" aria-hidden="true">i</span><span><strong>Only approve a request you just started.</strong> Check that the code above exactly matches Lomi desktop. This connects the app to your Lomi account; it does not grant access to private GitHub repositories.</span></div>
+        </div>
+        <div class="device-actions">
+          <button id="approve-device" class="button button-primary button-full" type="button">Approve this device</button>
+          <button id="deny-device" class="button button-secondary button-full" type="button">Deny request</button>
+        </div>
+      </div>
+    </section>
+
+    <p class="device-help">Didn’t start this sign-in? You can safely leave this page.</p>
+    <noscript><p class="notice notice-warning">Turn on JavaScript to check or approve a device sign-in.</p></noscript>
+  </section>
+</BaseLayout>
+
+<script src="../scripts/device.ts"></script>
+
+<style>
+  .device-panel {
+    width: min(100%, 570px);
+    padding: clamp(25px, 5vw, 43px);
+    border-radius: 28px;
+  }
+
+  .device-heading {
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .device-symbol {
+    display: grid;
+    width: 58px;
+    height: 58px;
+    margin: 0 auto 19px;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--lime) 55%, var(--line));
+    border-radius: 19px;
+    background: var(--lime);
+    color: var(--lime-ink);
+    box-shadow: 0 8px 20px rgba(80, 108, 0, 0.13);
+  }
+
+  .device-symbol svg {
+    width: 30px;
+    height: 30px;
+    fill: currentColor;
+  }
+
+  .device-heading .eyebrow {
+    justify-content: center;
+  }
+
+  .device-heading h1 {
+    margin-top: 11px;
+    margin-bottom: 10px;
+    font-size: clamp(31px, 6vw, 39px);
+    letter-spacing: -0.06em;
+  }
+
+  .device-heading .copy {
+    max-width: 420px;
+    margin: 0 auto;
+    font-size: 13px;
+  }
+
+  .device-panel > .notice {
+    margin-bottom: 21px;
+  }
+
+  .device-retry {
+    margin-top: -9px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .device-state h2 {
+    margin-top: 24px;
+  }
+
+  .device-state > p:not(.device-footnote) {
+    margin-bottom: 18px;
+    color: var(--text-soft);
+    font-size: 13px;
+  }
+
+  .device-footnote {
+    margin: 11px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .device-account {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 22px;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    background: var(--canvas-raised);
+    padding: 11px 12px;
+  }
+
+  .device-account-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .device-account-copy strong {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .device-account-copy small {
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .avatar {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--surface-soft);
+    color: var(--text);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  .avatar-small {
+    width: 34px;
+    height: 34px;
+    font-size: 12px;
+  }
+
+  .text-button {
+    border: 0;
+    background: none;
+    color: var(--text-soft);
+    padding: 6px 0 6px 7px;
+    cursor: pointer;
+    font-size: 10px;
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    white-space: nowrap;
+  }
+
+  .device-code-form {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .code-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 9px;
+  }
+
+  .code-input {
+    min-width: 0;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .device-code-form .field-help {
+    margin: 1px 0 0;
+  }
+
+  .field-error {
+    margin-top: 2px;
+  }
+
+  .device-review {
+    margin-top: 28px;
+    animation: reveal 180ms ease-out both;
+  }
+
+  @keyframes reveal {
+    from { transform: translateY(5px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .review-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 15px;
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  .review-divider::before,
+  .review-divider::after {
+    height: 1px;
+    flex: 1;
+    background: var(--line);
+    content: "";
+  }
+
+  .review-app {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    padding: 12px;
+  }
+
+  .review-app-icon {
+    display: grid;
+    width: 37px;
+    height: 37px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--lime);
+  }
+
+  .review-app-icon img {
+    width: 19px;
+    height: 19px;
+    image-rendering: pixelated;
+  }
+
+  .review-app > span:nth-child(2) {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+  }
+
+  .review-app small {
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+
+  .review-app strong {
+    margin-top: 2px;
+    font-size: 13px;
+  }
+
+  .review-check {
+    display: grid;
+    width: 21px;
+    height: 21px;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--success-bg);
+    color: var(--success);
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .review-code-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 13px 0;
+    border-radius: 14px;
+    background: var(--surface-soft);
+    padding: 12px 15px;
+  }
+
+  .review-label {
+    color: var(--text-muted);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.09em;
+  }
+
+  .review-code {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .review-expiry,
+  .device-safety-note {
+    margin-top: 11px;
+  }
+
+  .device-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+    margin-top: 17px;
+  }
+
+  .device-help {
+    margin: 22px 0 0;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-align: center;
+  }
+
+  @media (max-width: 470px) {
+    .device-panel {
+      padding: 24px 18px;
+      border-radius: 22px;
+    }
+
+    .code-input-row {
+      grid-template-columns: 1fr;
+    }
+
+    .device-actions {
+      grid-template-columns: 1fr;
+    }
+
+    .review-code-wrap {
+      gap: 12px;
+    }
+
+    .review-label {
+      max-width: 88px;
+    }
+
+    .device-account {
+      gap: 8px;
+      padding-right: 9px;
+      padding-left: 9px;
+    }
+  }
+</style>

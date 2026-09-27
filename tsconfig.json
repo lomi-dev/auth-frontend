@@ -1,0 +1,10 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "types": ["@playwright/test", "bun-types"]
+  },
+  "include": [".astro/types.d.ts", "src/**/*", "tests/**/*", "playwright.config.ts"],
+  "exclude": ["dist", "node_modules"]
+}
