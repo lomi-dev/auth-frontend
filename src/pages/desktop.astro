@@ -8,10 +8,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   pageClass="page-desktop"
   currentPage="desktop"
 >
-  <section class="desktop-card panel" aria-labelledby="desktop-title">
-    <h1 id="desktop-title">Signing in to Lomi</h1>
-    <p id="desktop-status" class="copy" role="status" aria-live="polite">Checking your Lomi session…</p>
-    <p id="desktop-error" class="notice notice-danger" role="alert" hidden></p>
+  <section class="desktop-status" aria-labelledby="desktop-title">
+    <h1 id="desktop-title">Authenticating with GitHub</h1>
+    <p id="desktop-status" class="desktop-copy" role="status" aria-live="polite">You will automatically be redirected.</p>
+    <p id="desktop-error" class="desktop-error" role="alert" hidden></p>
     <noscript>
       <p class="notice notice-warning">Turn on JavaScript, then start sign-in again in Lomi.</p>
     </noscript>
@@ -21,22 +21,28 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 <script src="../scripts/desktop.ts"></script>
 
 <style>
-  .desktop-card {
-    width: min(100%, 360px);
-    padding: 24px;
+  .desktop-status {
+    width: min(100%, 520px);
     text-align: center;
   }
 
-  .desktop-card h1 {
-    margin-bottom: 10px;
-    font-size: 22px;
+  .desktop-status h1 {
+    margin-bottom: 12px;
+    font-size: clamp(32px, 4vw, 40px);
   }
 
-  .desktop-card .copy {
+  .desktop-copy,
+  .desktop-error {
     margin-bottom: 0;
+    font-size: 15px;
+    line-height: 1.55;
   }
 
-  .desktop-card .notice {
-    margin: 16px 0 0;
+  .desktop-copy {
+    color: var(--text-soft);
+  }
+
+  .desktop-error {
+    color: var(--danger);
   }
 </style>

@@ -1,5 +1,7 @@
 ---
 import "../styles/global.css";
+import BrandWordmark from "../components/BrandWordmark.astro";
+import CloudBackdrop from "../components/CloudBackdrop.astro";
 
 interface Props {
   title: string;
@@ -17,18 +19,21 @@ const isAccount = currentPage === "account";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" content="#F7F8F3" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#101114" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#F7F8F3" />
     <meta name="description" content={description} />
     <meta name="referrer" content="no-referrer" />
     <meta name="robots" content="noindex, nofollow" />
-    <link rel="icon" type="image/svg+xml" href="/icons/lomi-v1.3.svg?v=blue" />
+    <link rel="icon" type="image/svg+xml" href="/icons/lomi-v1.3.svg?v=lime" />
+    <link rel="preload" href="/fonts/Geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin />
     <title>{title} · Lomi</title>
   </head>
   <body class={pageClass} data-page={currentPage}>
+    <CloudBackdrop />
     <a class="skip-link" href="#main-content">Skip to content</a>
     <div class="site-shell">
+      <BrandWordmark />
       <main id="main-content" tabindex="-1" class:list={["main-content", isAccount && "main-content-account"]}>
         <slot />
       </main>

@@ -14,7 +14,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <svg viewBox="0 0 32 32" focusable="false"><path d="M9 5.5h14A2.5 2.5 0 0 1 25.5 8v10A2.5 2.5 0 0 1 23 20.5h-5.5l.75 3H21v2H11v-2h2.75l.75-3H9A2.5 2.5 0 0 1 6.5 18V8A2.5 2.5 0 0 1 9 5.5Zm-.5 2.5v10h15V8h-15Z" /></svg>
       </span>
       <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Device sign-in</span>
-      <h1 id="device-title">Connect Lomi desktop</h1>
+      <h1 id="device-title">Connect <span class="serif-accent">Lomi</span> desktop</h1>
       <p class="copy">Confirm the short code shown in the Lomi app to connect this device to your account.</p>
     </div>
 
@@ -99,7 +99,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   .device-panel {
     width: min(100%, 570px);
     padding: clamp(25px, 5vw, 43px);
-    border-radius: 28px;
+    border-radius: 18px;
   }
 
   .device-heading {
@@ -392,7 +392,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   @media (max-width: 470px) {
     .device-panel {
       padding: 24px 18px;
-      border-radius: 22px;
+      border-radius: 18px;
     }
 
     .code-input-row {

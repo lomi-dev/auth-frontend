@@ -242,17 +242,26 @@ test("fresh-session response requires GitHub verification and a second explicit 
   expect(deleteCount).toBe(2);
 });
 
-test("anonymous desktop handoff preserves its request through the explicit GitHub login", async ({ page }) => {
+test("anonymous desktop handoff starts GitHub immediately with the guarded callback", async ({ page }) => {
   const requestId = "A".repeat(43);
-  let callbackURL: string | undefined;
+  const returnTo = `/desktop?request=${requestId}`;
+  let signInBody: Record<string, unknown> | null = null;
+  let signInCount = 0;
+  let loginPageCount = 0;
+  let releaseSignIn!: () => void;
+  const signInGate = new Promise<void>((resolve) => { releaseSignIn = resolve; });
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/login") loginPageCount += 1;
+  });
   await page.route("**/v1/me", (route) => route.fulfill({
     status: 401,
     contentType: "application/json",
     body: JSON.stringify({ error: { code: "SESSION_REQUIRED" } }),
   }));
   await page.route("**/api/auth/sign-in/social", async (route) => {
-    const body = route.request().postDataJSON() as Record<string, unknown>;
-    callbackURL = String(body.callbackURL ?? "");
+    signInCount += 1;
+    signInBody = route.request().postDataJSON() as Record<string, unknown>;
+    await signInGate;
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -261,13 +270,226 @@ test("anonymous desktop handoff preserves its request through the explicit GitHu
   });
   await page.route("https://github.com/**", (route) => route.fulfill({ status: 200, body: "Mock GitHub authorization" }));
 
-  await page.goto(`/desktop?request=${requestId}`);
-  await expect(page).toHaveURL(/\/login\?returnTo=/);
-  await expect(page.getByRole("button", { name: "Continue with GitHub" })).toBeEnabled();
-  expect(callbackURL).toBeUndefined();
-  await page.getByRole("button", { name: "Continue with GitHub" }).click();
-  await expect.poll(() => callbackURL).toBe(`/desktop?request=${requestId}`);
+  await page.goto(returnTo);
+  await expect(page.getByRole("heading", { name: "Authenticating with GitHub" })).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("You will automatically be redirected.");
+  await expect.poll(() => signInCount).toBe(1);
+  expect(signInBody).toEqual({
+    provider: "github",
+    callbackURL: returnTo,
+    errorCallbackURL: `/error?returnTo=${encodeURIComponent(returnTo)}`,
+    disableRedirect: true,
+  });
+  expect(loginPageCount).toBe(0);
+  releaseSignIn();
   await expect(page).toHaveURL(/github\.com\/login\/oauth\/authorize/);
+});
+
+test("desktop handoff completes after GitHub returns with a browser session", async ({ page }) => {
+  const requestId = "A".repeat(43);
+  const code = "C".repeat(43);
+  const state = "S".repeat(43);
+  const callbackUrl = `http://127.0.0.1:14321/auth/callback?code=${code}&state=${state}`;
+  let sessionChecks = 0;
+  let signInCount = 0;
+  let completeCount = 0;
+  let completeBody: Record<string, unknown> | null = null;
+
+  await page.route("**/v1/me", (route) => {
+    sessionChecks += 1;
+    return route.fulfill(sessionChecks === 1
+      ? { status: 401, contentType: "application/json", body: JSON.stringify({ error: { code: "SESSION_REQUIRED" } }) }
+      : { status: 200, contentType: "application/json", body: JSON.stringify(me) });
+  });
+  await page.route("**/api/auth/sign-in/social", (route) => {
+    signInCount += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ url: "https://github.com/login/oauth/authorize?client_id=test", redirect: false }),
+    });
+  });
+  await page.route("https://github.com/**", (route) => route.fulfill({
+    status: 302,
+    headers: { location: `http://127.0.0.1:4322/desktop?request=${requestId}` },
+    body: "",
+  }));
+  await page.route("**/v1/desktop/complete", (route) => {
+    completeCount += 1;
+    completeBody = route.request().postDataJSON() as Record<string, unknown>;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ redirectUrl: callbackUrl }) });
+  });
+  await page.route("http://127.0.0.1:14321/auth/callback**", (route) => route.fulfill({ status: 200, body: "Desktop callback received" }));
+
+  await page.goto(`/desktop?request=${requestId}`);
+
+  await expect(page).toHaveURL(callbackUrl);
+  expect(sessionChecks).toBe(2);
+  expect(signInCount).toBe(1);
+  expect(completeCount).toBe(1);
+  expect(completeBody).toEqual({ requestId });
+});
+
+test("invalid desktop request is rejected before any API call", async ({ page }) => {
+  const apiCalls: string[] = [];
+  page.on("request", (request) => {
+    const pathname = new URL(request.url()).pathname;
+    if (pathname.startsWith("/v1/") || pathname.startsWith("/api/auth/")) apiCalls.push(pathname);
+  });
+
+  await page.goto("/desktop?request=invalid");
+
+  await expect(page.getByRole("heading", { name: "This sign-in link is invalid." })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Start sign-in again in Lomi.");
+  expect(apiCalls).toEqual([]);
+});
+
+test("desktop handoff reports OAuth start errors and rejects unsafe provider URLs", async ({ page }) => {
+  const requestId = "A".repeat(43);
+  let signInCount = 0;
+  await page.route("**/v1/me", (route) => route.fulfill({
+    status: 401,
+    contentType: "application/json",
+    body: JSON.stringify({ error: { code: "SESSION_REQUIRED" } }),
+  }));
+  await page.route("**/api/auth/sign-in/social", async (route) => {
+    signInCount += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ url: "https://github.com.evil.example/login/oauth/authorize", redirect: false }),
+    });
+  });
+
+  await page.goto(`/desktop?request=${requestId}`);
+
+  await expect(page.getByRole("heading", { name: "GitHub sign-in could not start." })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Close this page and start sign-in again in Lomi.");
+  await expect(page).toHaveURL(new RegExp(`/desktop\\?request=${requestId}$`));
+  expect(signInCount).toBe(1);
+});
+
+test("desktop handoff reports a failed OAuth start without navigating to a provider", async ({ page }) => {
+  const requestId = "A".repeat(43);
+  let providerRequests = 0;
+  await page.route("**/v1/me", (route) => route.fulfill({
+    status: 401,
+    contentType: "application/json",
+    body: JSON.stringify({ error: { code: "SESSION_REQUIRED" } }),
+  }));
+  await page.route("**/api/auth/sign-in/social", (route) => route.fulfill({
+    status: 500,
+    contentType: "application/json",
+    body: JSON.stringify({ message: "OAuth unavailable" }),
+  }));
+  page.on("request", (request) => {
+    if (new URL(request.url()).hostname === "github.com") providerRequests += 1;
+  });
+
+  await page.goto(`/desktop?request=${requestId}`);
+
+  await expect(page.getByRole("heading", { name: "GitHub sign-in could not start." })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Close this page and start sign-in again in Lomi.");
+  await expect(page).toHaveURL(new RegExp(`/desktop\\?request=${requestId}$`));
+  expect(providerRequests).toBe(0);
+});
+
+test("desktop handoff stops if session storage cannot guard an OAuth attempt", async ({ page }) => {
+  const requestId = "A".repeat(43);
+  let signInCount = 0;
+  await page.addInitScript(() => {
+    Object.defineProperty(Storage.prototype, "setItem", {
+      configurable: true,
+      value() { throw new DOMException("Storage is unavailable", "SecurityError"); },
+    });
+  });
+  await page.route("**/v1/me", (route) => route.fulfill({
+    status: 401,
+    contentType: "application/json",
+    body: JSON.stringify({ error: { code: "SESSION_REQUIRED" } }),
+  }));
+  await page.route("**/api/auth/sign-in/social", (route) => {
+    signInCount += 1;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ url: "https://github.com/login/oauth/authorize" }) });
+  });
+
+  await page.goto(`/desktop?request=${requestId}`);
+
+  await expect(page.getByRole("heading", { name: "GitHub sign-in could not start." })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Allow browser storage, then start sign-in again in Lomi.");
+  expect(signInCount).toBe(0);
+});
+
+test("a second anonymous desktop response does not automatically restart OAuth", async ({ page }) => {
+  const requestId = "A".repeat(43);
+  let sessionChecks = 0;
+  let signInCount = 0;
+  let completeCount = 0;
+  await page.route("**/v1/me", (route) => {
+    sessionChecks += 1;
+    return route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "SESSION_REQUIRED" } }),
+    });
+  });
+  await page.route("**/v1/desktop/complete", (route) => {
+    completeCount += 1;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({}) });
+  });
+  await page.route("**/api/auth/sign-in/social", (route) => {
+    signInCount += 1;
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ url: "https://github.com/login/oauth/authorize?client_id=test", redirect: false }),
+    });
+  });
+  await page.route("https://github.com/**", (route) => route.fulfill({
+    status: 302,
+    headers: { location: `http://127.0.0.1:4322/desktop?request=${requestId}` },
+    body: "",
+  }));
+
+  await page.goto(`/desktop?request=${requestId}`);
+
+  await expect(page.getByRole("heading", { name: "GitHub sign-in could not be confirmed." })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Close this page and start sign-in again in Lomi.");
+  await expect(page).toHaveURL(new RegExp(`/desktop\\?request=${requestId}$`));
+  expect(sessionChecks).toBe(2);
+  expect(signInCount).toBe(1);
+  expect(completeCount).toBe(0);
+});
+
+test("unauthorized desktop completion shows an error without restarting OAuth", async ({ page }) => {
+  const requestId = "A".repeat(43);
+  let signInCount = 0;
+  let completeCount = 0;
+  await page.route("**/v1/me", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify(me),
+  }));
+  await page.route("**/v1/desktop/complete", (route) => {
+    completeCount += 1;
+    return route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({ error: { code: "SESSION_REQUIRED" } }),
+    });
+  });
+  await page.route("**/api/auth/sign-in/social", (route) => {
+    signInCount += 1;
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ url: "https://github.com/login/oauth/authorize" }) });
+  });
+
+  await page.goto(`/desktop?request=${requestId}`);
+
+  await expect(page.getByRole("heading", { name: "Your session could not be confirmed." })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Close this page and start sign-in again in Lomi.");
+  await expect(page).toHaveURL(new RegExp(`/desktop\\?request=${requestId}$`));
+  expect(completeCount).toBe(1);
+  expect(signInCount).toBe(0);
 });
 
 test("authenticated desktop handoff completes once and navigates only to the validated callback", async ({ page }) => {
@@ -280,6 +502,8 @@ test("authenticated desktop handoff completes once and navigates only to the val
   const completeHeaders: { value: Record<string, string> | null } = { value: null };
   let releaseSession!: () => void;
   const sessionGate = new Promise<void>((resolve) => { releaseSession = resolve; });
+  let releaseComplete!: () => void;
+  const completeGate = new Promise<void>((resolve) => { releaseComplete = resolve; });
 
   await page.route("**/v1/me", async (route) => {
     await sessionGate;
@@ -289,14 +513,19 @@ test("authenticated desktop handoff completes once and navigates only to the val
     completeCount += 1;
     completeBody = route.request().postDataJSON() as Record<string, unknown>;
     completeHeaders.value = route.request().headers();
+    await completeGate;
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ redirectUrl: callbackUrl }) });
   });
   await page.route("http://127.0.0.1:14321/auth/callback**", (route) => route.fulfill({ status: 200, body: "Desktop callback received" }));
 
   await page.goto(`/desktop?request=${requestId}`);
-  await expect(page.getByRole("heading", { name: "Signing in to Lomi" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Authenticating with GitHub" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(requestId);
   releaseSession();
+  await expect(page.getByRole("heading", { name: "Returning to Lomi" })).toBeVisible();
+  await expect(page.getByRole("status")).toHaveText("Lomi desktop will confirm when your session is saved.");
+  await expect.poll(() => completeCount).toBe(1);
+  releaseComplete();
 
   await expect(page).toHaveURL(callbackUrl);
   expect(completeCount).toBe(1);
@@ -315,7 +544,8 @@ test("desktop handoff blocks an unsafe completion redirect and shows a safe expi
   }));
 
   await page.goto(`/desktop?request=${requestId}`);
-  await expect(page.getByRole("alert")).toHaveText("This sign-in link is invalid. Start sign-in again in Lomi.");
+  await expect(page.getByRole("heading", { name: "This sign-in link is invalid." })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveText("Start sign-in again in Lomi.");
   await expect(page).toHaveURL(new RegExp(`/desktop\\?request=${requestId}$`));
   await expect(page.locator("body")).not.toContainText(requestId);
 

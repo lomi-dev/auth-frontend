@@ -1,0 +1,17 @@
+---
+import { Picture } from "astro:assets";
+import sky from "../assets/clouds.png";
+---
+
+<div class="sky-background" aria-hidden="true">
+  <Picture
+    src={sky}
+    alt=""
+    formats={["avif", "webp"]}
+    widths={[640, 1024, 1536]}
+    sizes="100vw"
+    quality={72}
+    loading="eager"
+    fetchpriority="high"
+  />
+</div>

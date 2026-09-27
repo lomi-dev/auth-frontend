@@ -4,13 +4,16 @@ The portal is a static Astro site. Browser requests use the same origin for the 
 
 ## Visual language
 
-The login screen contains one centered card and a GitHub button. It uses the
-local Geist font from `lomi-web`, along with the consolidated Lomi design system's
-Soft Chalk/Ink/Electric Lime palette, flat bordered cards and compact controls.
-System dark mode uses the design system's graphite palette. Loading, errors and
-no-JavaScript guidance appear only when needed. New desktop sign-ins open a quiet
-handoff page that resumes after the explicit GitHub sign-in and returns directly
-to the local desktop callback without showing a device code.
+The login screen contains a centered heading and GitHub button over the same
+cloud background and Soft Chalk overlay as `lomi-web`. Local Geist typography,
+the Lomi wordmark, and the Soft Chalk/Ink/Electric Lime palette carry across the
+portal. Loading, errors and no-JavaScript guidance appear only when needed.
+
+Desktop Sign In opens a minimal progress page and starts GitHub automatically
+when there is no browser session. A per-request session marker prevents repeated
+OAuth redirects if the session cannot be confirmed. After authentication, the
+portal returns to the validated local desktop callback without a device code.
+The desktop app shows success only after verifying and activating its session.
 
 ## Local development
 
