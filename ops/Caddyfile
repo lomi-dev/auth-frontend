@@ -2,6 +2,7 @@
 	admin off
 	log {
 		level ERROR
+  exclude http.log.error
 	}
 }
 
