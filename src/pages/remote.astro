@@ -1,0 +1,25 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+<BaseLayout title="Connect Lomi Remote" description="Review account access for Lomi Remote." pageClass="page-device">
+  <section class="panel remote-panel" aria-labelledby="remote-title">
+    <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Remote sign-in</span>
+    <h1 id="remote-title">Connect <span class="serif-accent">Lomi</span> Remote</h1>
+    <p class="copy">Review this browser’s request to connect to your Lomi account.</p>
+    <p id="remote-status" class="notice notice-info" role="status" aria-live="polite">Checking your Lomi session…</p>
+    <a id="remote-login" class="button button-primary button-full" href="/login" hidden>Sign in with GitHub</a>
+    <div id="remote-review" hidden>
+      <dl class="remote-details"><dt>Account</dt><dd id="remote-account"></dd><dt>Application</dt><dd>Lomi Remote</dd><dt>Destination</dt><dd id="remote-origin"></dd><dt>Request expires</dt><dd id="remote-expiry"></dd></dl>
+      <div class="notice notice-info"><strong>Account access only.</strong> This lets Remote read your account identity. It does not pair a host, share terminal sessions, grant terminal control, or grant access to private GitHub repositories.</div>
+      <p class="remote-warning">Only continue if you just started sign-in on the Remote site shown above.</p>
+      <div class="remote-actions"><button id="remote-approve" class="button button-primary" type="button">Approve account access</button><button id="remote-deny" class="button button-secondary" type="button">Deny request</button></div>
+    </div>
+    <p id="remote-error" class="notice notice-danger" role="alert" hidden></p>
+    <p class="remote-help">If you did not start this request, leave this page.</p>
+    <noscript><p class="notice notice-warning">Enable JavaScript to review this request.</p></noscript>
+  </section>
+</BaseLayout>
+<script src="../scripts/remote.ts"></script>
+<style>
+.remote-panel{width:min(100%,570px);padding:clamp(24px,5vw,40px)}h1{margin:16px 0 12px;font-size:36px;text-wrap:balance}.copy{margin-bottom:24px;text-wrap:pretty}#remote-status{margin-bottom:20px}.remote-details{display:grid;grid-template-columns:100px minmax(0,1fr);gap:14px;font-size:13px;margin:24px 0}.remote-details dt{color:var(--text-muted)}.remote-details dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}.remote-warning{font-size:12px;color:var(--text-soft);margin:20px 0}.remote-actions{display:flex;flex-wrap:wrap;gap:10px}#remote-error{margin-top:20px}.remote-help{font-size:12px;color:var(--text-muted);margin-top:24px}
+</style>

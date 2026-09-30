@@ -23,6 +23,12 @@ export function resolveReturnDestination(search: string, origin: string): string
       return buildReauthReturn(intent);
     }
 
+    if (destination.pathname === "/remote") {
+      if (candidate.includes("#")) return "/account";
+      const request = /^\?request=([A-Za-z0-9_-]{43})$/.exec(destination.search);
+      return request ? `/remote?request=${request[1]}` : "/account";
+    }
+
     if (destination.pathname === "/desktop") {
       if (candidate.includes("#")) return "/account";
       const request = /^\?request=([A-Za-z0-9_-]{43})$/.exec(destination.search);
