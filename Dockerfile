@@ -12,4 +12,6 @@ RUN bun run check && bun run build
 FROM caddy:2.11.4-alpine
 COPY ops/Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/dist /srv
+ENTRYPOINT ["setpriv", "--no-new-privs"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
 EXPOSE 80 443
