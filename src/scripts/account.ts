@@ -1,12 +1,14 @@
 import { apiRequest, formatDate, initials, userFacingError, type AccountSession, type MeResponse, type SessionListResponse } from "../lib/api";
 import { authClient } from "../lib/auth-client";
+import { validateAccountImage } from "../lib/account-image";
 import { buildLoginUrl, buildReauthReturn, readReauthIntent, type ReauthIntent } from "../lib/return-destination";
 
 type SessionAction = { kind: "single"; sessionId: string; label: string } | { kind: "all" };
 
 const pageStatus = document.querySelector<HTMLParagraphElement>("#account-status");
 const content = document.querySelector<HTMLElement>("#account-content");
-const profileAvatar = document.querySelector<HTMLElement>("#profile-avatar");
+const profileImage = document.querySelector<HTMLImageElement>("#profile-image");
+const profileInitials = document.querySelector<HTMLElement>("#profile-initials");
 const profileName = document.querySelector<HTMLElement>("#profile-name");
 const profileHandle = document.querySelector<HTMLElement>("#profile-handle");
 const profileEmail = document.querySelector<HTMLElement>("#profile-email");
@@ -140,7 +142,19 @@ function createSessionItem(session: AccountSession): HTMLLIElement {
 
 function setProfile(me: MeResponse) {
   const name = me.user.displayName || "Lomi account";
-  if (profileAvatar) profileAvatar.textContent = initials(name);
+  if (profileInitials) profileInitials.textContent = initials(name);
+  const image = validateAccountImage(me.user.image);
+  if (profileImage && image) {
+    profileImage.onload = () => {
+      profileImage.hidden = false;
+      if (profileInitials) profileInitials.hidden = true;
+    };
+    profileImage.onerror = () => {
+      profileImage.hidden = true;
+      if (profileInitials) profileInitials.hidden = false;
+    };
+    profileImage.src = image;
+  }
   if (profileName) profileName.textContent = name;
   if (profileHandle) profileHandle.textContent = me.user.githubLogin ? `@${me.user.githubLogin}` : "GitHub account";
   if (profileEmail) profileEmail.textContent = me.user.email || "Not shared with Lomi";

@@ -30,7 +30,10 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             </div>
           </div>
           <div class="profile-identity">
-            <span id="profile-avatar" class="avatar profile-avatar" aria-hidden="true">L</span>
+            <span id="profile-avatar" class="avatar profile-avatar" aria-hidden="true">
+              <span id="profile-initials">L</span>
+              <img id="profile-image" width="55" height="55" alt="" referrerpolicy="no-referrer" hidden />
+            </span>
             <span class="profile-name-wrap"><strong id="profile-name">Lomi account</strong><small id="profile-handle"></small></span>
           </div>
           <dl class="profile-details">
@@ -185,13 +188,27 @@ import BaseLayout from "../layouts/BaseLayout.astro";
   }
 
   .profile-avatar {
+    position: relative;
+    display: grid;
     width: 55px;
     height: 55px;
+    flex: 0 0 auto;
+    place-items: center;
+    overflow: hidden;
     border-radius: 50%;
     border-color: color-mix(in srgb, var(--lime) 45%, var(--line));
     background: var(--lime);
     color: var(--lime-ink);
     font-size: 19px;
+    font-weight: 800;
+  }
+
+  .profile-avatar img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
   }
 
   .profile-name-wrap {
