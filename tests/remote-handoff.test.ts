@@ -9,6 +9,25 @@ const id = "A".repeat(43);
 const origin = "https://remote.lomi.dev";
 const callback = `${origin}/auth/callback?code=${id}&state=${id}`;
 describe("Remote consent handoff", () => {
+  test("allows only the registered local pair while preserving production restrictions", () => {
+    const localIdentity = "http://localhost:4321";
+    const localRemote = "http://localhost:4322";
+    const localCallback = `${localRemote}/auth/callback?code=${id}&state=${id}`;
+    expect(validateRemoteOrigin(localRemote, localIdentity)).toBe(localRemote);
+    expect(validateRemoteCallback(localCallback, localRemote, "approve", localIdentity)).toBe(localCallback);
+    expect(validateRemoteCallback(`${localRemote}/?auth=cancelled`, localRemote, "deny", localIdentity)).toBe(`${localRemote}/?auth=cancelled`);
+    for (const identity of [undefined, "https://auth.lomi.dev", "https://auth-staging.lomi.dev", "http://localhost:4324", "http://localhost:4321.evil.example"]) {
+      expect(validateRemoteOrigin(localRemote, identity)).toBeNull();
+      expect(validateRemoteCallback(localCallback, localRemote, "approve", identity)).toBeNull();
+      expect(validateRemoteCallback(`${localRemote}/?auth=cancelled`, localRemote, "deny", identity)).toBeNull();
+    }
+    for (const unregistered of ["http://127.0.0.1:4322", "http://localhost:4323", "https://localhost:4322", "http://localhost:4322.evil.example"]) {
+      expect(validateRemoteOrigin(unregistered, localIdentity)).toBeNull();
+    }
+    for (const invalid of [localCallback + "#", localCallback + "&next=evil", localCallback.replace("/auth/callback", "//auth/callback")]) {
+      expect(validateRemoteCallback(invalid, localRemote, "approve", localIdentity)).toBeNull();
+    }
+  });
   test("accepts canonical request and exact registered callbacks", () => {
     expect(
       readRemoteRequest(

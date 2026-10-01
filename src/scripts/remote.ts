@@ -69,7 +69,7 @@ async function start() {
     const preview = await remoteRequest<Preview>(
       `/v1/remote-login/request?request=${requestId}`,
     );
-    destination = validateRemoteOrigin(preview.origin);
+    destination = validateRemoteOrigin(preview.origin, location.origin);
     if (
       !destination ||
       preview.application !== "Lomi Remote" ||
@@ -138,6 +138,7 @@ async function finish(action: "approve" | "deny") {
       result.redirectUrl,
       destination,
       action,
+      location.origin,
     );
     if (!redirect) throw new Error("INVALID_CALLBACK");
     location.replace(redirect);
