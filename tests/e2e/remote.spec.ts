@@ -28,7 +28,7 @@ for (const width of [1280, 375]) {
       return route.fulfill({ contentType: "image/svg+xml", body: '<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56"><rect width="56" height="56" fill="#d9ded7"/><circle cx="28" cy="22" r="10" fill="#535c56"/><path d="M8 56v-7a20 20 0 0 1 40 0v7" fill="#535c56"/></svg>' });
     });
     await page.goto(returnTo);
-    await expect(page.getByRole("heading", { name: "Log in to Lomi Remote" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Log in to Remote" })).toBeVisible();
     await expect(page.locator("#remote-avatar")).toBeVisible();
     await expect(page.getByText("Ada Lovelace", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();

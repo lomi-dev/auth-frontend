@@ -1,3 +1,4 @@
+import { apiRequest, type ApiError, type MeResponse } from "../lib/api";
 import { authClient } from "../lib/auth-client";
 import { resolveReturnDestination } from "../lib/return-destination";
 
@@ -6,12 +7,57 @@ const button = document.querySelector<HTMLButtonElement>("#github-sign-in");
 const buttonLabel = document.querySelector<HTMLElement>("[data-button-label]");
 const status = document.querySelector<HTMLParagraphElement>("#login-status");
 
-if (form && button && buttonLabel && status) {
-  button.disabled = false;
+const retry = document.querySelector<HTMLDivElement>("#login-retry");
+const checkSession = document.querySelector<HTMLButtonElement>("#login-check-session");
+
+if (form && button && buttonLabel && status && retry && checkSession) {
   const returnTo = resolveReturnDestination(window.location.search, window.location.origin);
+
+  const remoteLogin = /^\/remote\?request=[A-Za-z0-9_-]{43}$/.test(returnTo);
+  let canSignIn = !remoteLogin;
+  let checkingSession = false;
+
+  async function checkRemoteSession() {
+    if (checkingSession) return;
+    checkingSession = true;
+    canSignIn = false;
+    form!.hidden = true;
+    retry!.hidden = true;
+    status!.classList.remove("notice-danger");
+    status!.textContent = "Checking your Lomi session…";
+    status!.hidden = false;
+    try {
+      const me = await apiRequest<MeResponse>("/v1/me");
+      if (me?.user?.status !== "active") throw new Error("ACCOUNT_UNAVAILABLE");
+      location.replace(returnTo);
+    } catch (error) {
+      if ((error as ApiError | null)?.status === 401) {
+        canSignIn = true;
+        form!.hidden = false;
+        button!.disabled = false;
+        status!.hidden = true;
+      } else {
+        status!.classList.add("notice-danger");
+        status!.textContent = "We couldn’t confirm your Lomi session. Check your connection and try again.";
+        retry!.hidden = false;
+      }
+    } finally {
+      checkingSession = false;
+    }
+  }
+
+  if (remoteLogin) {
+    checkSession.addEventListener("click", () => void checkRemoteSession());
+    void checkRemoteSession();
+  } else {
+    form.hidden = false;
+    button.disabled = false;
+  }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (!canSignIn) return;
+    status.classList.add("notice-danger");
     button.disabled = true;
     button.setAttribute("aria-busy", "true");
     buttonLabel.textContent = "Connecting to GitHub…";

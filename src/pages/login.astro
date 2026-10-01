@@ -12,7 +12,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     <h1 id="login-title">Sign in</h1>
     <p class="login-description">Continue with GitHub to access your Lomi account.</p>
 
-    <form id="login-form" class="login-actions">
+    <form id="login-form" class="login-actions" hidden>
       <button class="button button-primary button-full" id="github-sign-in" type="submit" disabled>
         <span class="button-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false"><path d="M12 1.9a10.1 10.1 0 0 0-3.19 19.68c.5.09.69-.22.69-.48v-1.68c-2.81.61-3.4-1.2-3.4-1.2-.46-1.17-1.13-1.49-1.13-1.49-.93-.63.07-.62.07-.62 1.03.08 1.57 1.06 1.57 1.06.91 1.56 2.38 1.11 2.96.85.09-.66.36-1.12.65-1.38-2.24-.26-4.59-1.12-4.59-4.98 0-1.1.39-2 1.05-2.7-.11-.26-.45-1.28.1-2.67 0 0 .86-.28 2.79 1.03a9.7 9.7 0 0 1 5.08 0c1.93-1.31 2.79-1.03 2.79-1.03.55 1.39.21 2.41.1 2.67.66.7 1.05 1.6 1.05 2.7 0 3.87-2.36 4.72-4.61 4.97.36.32.68.93.68 1.88v2.77c0 .27.18.58.7.48A10.1 10.1 0 0 0 12 1.9Z" /></svg>
@@ -22,6 +22,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     </form>
 
     <p id="login-status" class="notice notice-danger status-message login-status" role="status" aria-live="polite" hidden></p>
+    <div id="login-retry" class="login-actions" hidden>
+      <button id="login-check-session" class="button button-primary button-full" type="button">Check again</button>
+    </div>
     <noscript>
       <p class="notice notice-warning login-noscript">Turn on JavaScript to securely sign in to your Lomi account.</p>
     </noscript>
