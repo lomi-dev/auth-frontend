@@ -17,7 +17,6 @@ const sessionsEmpty = document.querySelector<HTMLElement>("#sessions-empty");
 const sessionCount = document.querySelector<HTMLElement>("#session-count");
 const loadMoreButton = document.querySelector<HTMLButtonElement>("#load-more-sessions");
 const revokeAllButton = document.querySelector<HTMLButtonElement>("#revoke-all-sessions");
-const signOutButton = document.querySelector<HTMLButtonElement>("#sign-out");
 const confirmDialog = document.querySelector<HTMLDialogElement>("#confirm-dialog");
 const confirmTitle = document.querySelector<HTMLHeadingElement>("#confirm-title");
 const confirmCopy = document.querySelector<HTMLParagraphElement>("#confirm-copy");
@@ -344,21 +343,6 @@ async function loadAccount() {
 
 loadMoreButton?.addEventListener("click", () => void loadSessions(true));
 revokeAllButton?.addEventListener("click", () => openConfirm({ kind: "all" }));
-signOutButton?.addEventListener("click", async () => {
-  signOutButton.disabled = true;
-  signOutButton.setAttribute("aria-busy", "true");
-  signOutButton.textContent = "Signing out…";
-  try {
-    const result = await authClient.signOut();
-    if (result.error) throw new Error("SIGN_OUT_FAILED");
-    window.location.replace("/login");
-  } catch {
-    setPageStatus("We couldn’t sign out. Check your connection and try again.", "danger");
-    signOutButton.disabled = false;
-    signOutButton.removeAttribute("aria-busy");
-    signOutButton.textContent = "Sign out";
-  }
-});
 confirmButton?.addEventListener("click", () => {
   if (pendingAction) void performAction(pendingAction);
 });
