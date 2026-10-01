@@ -14,6 +14,7 @@ export interface ApiError extends Error {
 export interface CurrentUser {
   id: string;
   displayName: string;
+  image?: string | null;
   email: string | null;
   githubLogin: string | null;
   status: "active" | "suspended" | "deleting" | string;

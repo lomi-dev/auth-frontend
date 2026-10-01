@@ -1,4 +1,5 @@
-import { apiRequest, formatDate, type MeResponse } from "../lib/api";
+import { apiRequest, initials, type MeResponse } from "../lib/api";
+import { validateAccountImage } from "../lib/account-image";
 import { buildLoginUrl } from "../lib/return-destination";
 import {
   readRemoteRequest,
@@ -18,6 +19,10 @@ const review = document.querySelector<HTMLElement>("#remote-review")!;
 const login = document.querySelector<HTMLAnchorElement>("#remote-login")!;
 const approve = document.querySelector<HTMLButtonElement>("#remote-approve")!;
 const deny = document.querySelector<HTMLButtonElement>("#remote-deny")!;
+const account = document.querySelector<HTMLParagraphElement>("#remote-account")!;
+const github = document.querySelector<HTMLParagraphElement>("#remote-github")!;
+const avatar = document.querySelector<HTMLImageElement>("#remote-avatar")!;
+const avatarInitials = document.querySelector<HTMLSpanElement>("#remote-initials")!;
 const requestId = readRemoteRequest(location.search, location.href);
 let destination: string | null = null;
 let busy = false;
@@ -56,9 +61,11 @@ async function start() {
     showError("This request is invalid. Start sign-in again on Lomi Remote.");
     return;
   }
+  let checkingSession = true;
   try {
     const me = await apiRequest<MeResponse>("/v1/me");
     if (me.user.status !== "active") throw new Error("ACCOUNT_UNAVAILABLE");
+    checkingSession = false;
     const preview = await remoteRequest<Preview>(
       `/v1/remote-login/request?request=${requestId}`,
     );
@@ -73,25 +80,35 @@ async function start() {
       !Number.isFinite(Date.parse(preview.expiresAt))
     )
       throw new Error("INVALID_REQUEST");
-    document.querySelector("#remote-account")!.textContent =
-      me.user.displayName || me.user.githubLogin || "Lomi account";
-    document.querySelector("#remote-origin")!.textContent = destination;
-    document.querySelector("#remote-expiry")!.textContent = formatDate(
-      preview.expiresAt,
-    );
-    status.textContent =
-      "Review the destination and account before continuing.";
+    const name = me.user.displayName || me.user.githubLogin || "Lomi account";
+    account.textContent = name;
+    avatarInitials.textContent = initials(name);
+    if (me.user.githubLogin && me.user.githubLogin !== name) {
+      github.textContent = `@${me.user.githubLogin}`;
+      github.hidden = false;
+    }
+    const image = validateAccountImage(me.user.image);
+    if (image) {
+      avatar.addEventListener("load", () => { avatar.hidden = false; });
+      avatar.addEventListener("error", () => { avatar.hidden = true; });
+      avatar.src = image;
+    }
+    status.hidden = true;
     review.hidden = false;
   } catch (error) {
     if (
+      checkingSession &&
       typeof error === "object" &&
       error !== null &&
       "status" in error &&
       error.status === 401
     ) {
-      status.textContent = "Sign in before reviewing this request.";
+      status.textContent = "Redirecting to GitHub sign-in…";
       login.href = buildLoginUrl(`/remote?request=${requestId}`);
       login.hidden = false;
+      try { location.replace(login.href); } catch {
+        status.textContent = "Continue with GitHub to sign in.";
+      }
       return;
     }
     status.hidden = true;
@@ -106,10 +123,12 @@ async function finish(action: "approve" | "deny") {
   approve.disabled = true;
   deny.disabled = true;
   errorBox.hidden = true;
+  status.hidden = false;
+  approve.setAttribute("aria-busy", "true");
   status.textContent =
     action === "approve"
-      ? "Approving account access…"
-      : "Denying this request…";
+      ? "Continuing to Lomi Remote…"
+      : "Cancelling this request…";
   try {
     const result = await remoteRequest<{ redirectUrl: unknown }>(
       `/v1/remote-login/${action === "approve" ? "complete" : "deny"}`,
@@ -128,6 +147,7 @@ async function finish(action: "approve" | "deny") {
       "Try again. If this request expired or was already handled, start sign-in again on Lomi Remote.",
     );
     busy = false;
+    approve.removeAttribute("aria-busy");
     approve.disabled = false;
     deny.disabled = false;
   }

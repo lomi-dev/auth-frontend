@@ -116,7 +116,7 @@ test("device review stays hidden when the session check fails and offers a retry
 
 test("device result page keeps its status script external under the deployment CSP", async ({ page }) => {
   const cspViolations: string[] = [];
-  const csp = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'";
+  const csp = "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'";
   page.on("console", (message) => {
     if (message.type() === "error" && /content security policy|refused to execute/i.test(message.text())) {
       cspViolations.push(message.text());
