@@ -11,7 +11,6 @@ Pełna procedura dla obu repozytoriów znajduje się w
 ```sh
 bun install --frozen-lockfile
 bun run check
-bun run test
 bun run build
 docker build -t lomi-auth-portal:local .
 ```

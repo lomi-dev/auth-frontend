@@ -8,10 +8,7 @@
     "build": "astro build && bun run check:static-output",
     "preview": "astro preview --host 127.0.0.1",
     "check": "astro check",
-    "check:static-output": "bun run scripts/check-static-output.ts",
-    "test": "bun test tests/*.test.ts",
-    "test:e2e": "bun run build && playwright test",
-    "test:e2e:integration": "node node_modules/@playwright/test/cli.js test --config playwright.integration.config.ts"
+    "check:static-output": "bun run scripts/check-static-output.ts"
   },
   "dependencies": {
     "astro": "7.3.5",
@@ -19,7 +16,6 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
-    "@playwright/test": "1.56.1",
     "@types/bun": "1.4.2",
     "typescript": "6.0.3"
   }

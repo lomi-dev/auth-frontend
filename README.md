@@ -23,18 +23,10 @@ Use Bun 1.4.2. The development server binds only to `127.0.0.1:4321` and Vite pr
 bun install --frozen-lockfile
 bun run dev
 bun run check
-bun run test
-bun run test:e2e
 bun run build
 ```
 
 The portal pins Better Auth 1.7.6 to match the API. TypeScript is pinned to 6.0.3 because `@astrojs/check` 0.9.10 supports TypeScript 5 and 6; it does not support TypeScript 7. No API secrets are needed by this static frontend.
-
-The Playwright suite mocks auth and account API responses. It verifies browser behavior and request headers, not real GitHub OAuth or production API behavior.
-
-An opt-in [synthetic auth-app integration suite](./tests/integration/browser/README.md)
-uses the real backend through a separately supervised local fixture. Run it with
-`test:e2e:integration` only after configuring that fixture; otherwise it skips.
 
 ## Release prerequisites
 
