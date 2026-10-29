@@ -8,9 +8,14 @@ interface DeviceVerification {
   status?: string;
   client_id?: string;
   scope?: string;
+  purpose?: "host_enrollment";
+  reviewerUserId?: string;
   expiresAt?: string;
 }
 
+const heading = document.querySelector<HTMLHeadingElement>("#device-title");
+const safetyCopy = document.querySelector<HTMLElement>("#device-safety-note .notice-row > span:last-child");
+const hostConsent = document.querySelector<HTMLElement>("#host-consent");
 const statusBox = document.querySelector<HTMLParagraphElement>("#device-status");
 const noSession = document.querySelector<HTMLElement>("#device-no-session");
 const sessionPanel = document.querySelector<HTMLElement>("#device-session");
@@ -32,6 +37,41 @@ const retryWrap = document.querySelector<HTMLElement>("#device-retry");
 const retrySessionCheck = document.querySelector<HTMLButtonElement>("#retry-session-check");
 
 let currentCode: string | null = null;
+let reviewedCode: string | null = null;
+let reviewedUserId: string | null = null;
+let currentPurpose: "host_enrollment" | null = null;
+let reviewGeneration = 0;
+
+function resetReview() {
+  reviewGeneration += 1;
+  reviewedCode = null;
+  reviewedUserId = null;
+  currentPurpose = null;
+  if (review) review.hidden = true;
+  if (reviewClient) reviewClient.textContent = "Lomi desktop";
+  if (hostConsent) hostConsent.hidden = true;
+  if (heading) heading.textContent = "Connect to Lomi";
+  if (approve) {
+    approve.textContent = "Approve this device";
+    approve.disabled = false;
+    approve.removeAttribute("aria-busy");
+  }
+  if (deny) {
+    deny.disabled = false;
+    deny.removeAttribute("aria-busy");
+  }
+  if (codeForm) {
+    codeForm.hidden = false;
+    const submit = codeForm.querySelector<HTMLButtonElement>("button[type=submit]");
+    if (submit) {
+      submit.disabled = false;
+      submit.removeAttribute("aria-busy");
+      submit.textContent = "Check code";
+    }
+  }
+  if (codeInput) codeInput.disabled = false;
+}
+
 let currentUser: MeResponse | null = null;
 
 function setStatus(message: string, tone: "info" | "success" | "warning" | "danger" = "info") {
@@ -68,6 +108,7 @@ function showSession(user: MeResponse) {
 
 function showNoSession() {
   currentUser = null;
+  resetReview();
   if (retryWrap) retryWrap.hidden = true;
   if (sessionPanel) sessionPanel.hidden = true;
   if (noSession) noSession.hidden = false;
@@ -80,11 +121,11 @@ function explainDeviceError(error: unknown): string {
   if (typeof error === "object" && error !== null && "code" in error) {
     const code = String(error.code);
     if (code === "SESSION_REQUIRED" || code === "UNAUTHORIZED") return "Your session has ended. Sign in again before reviewing this request.";
-    if (code === "FORBIDDEN" || code === "access_denied") return "This code is already connected to a different Lomi account. Sign in to that account or ask Lomi desktop to start a new request.";
+    if (code === "FORBIDDEN" || code === "access_denied") return "This code is already connected to a different Lomi account. Sign in to that account or start a new request in Lomi.";
     if (code === "NETWORK_ERROR") return "We couldn’t reach Lomi. Check your connection and try again.";
     if (code === "SERVICE_UNAVAILABLE") return "Lomi is temporarily unavailable. Try again shortly.";
   }
-  return "This code is invalid, expired, or already handled. Check Lomi desktop for a new code.";
+  return "This code is invalid, expired, or already handled. Start a new request in Lomi for a new code.";
 }
 
 function formatExpiry(value: string): string | null {
@@ -106,7 +147,7 @@ function showExpiry(value: string | undefined) {
   const expiryDate = value ? new Date(value) : null;
   const expiry = value ? formatExpiry(value) : null;
   if (!expiry) {
-    copy.append(document.createTextNode("This code can expire at any time. Lomi desktop will tell you if it has expired."));
+    copy.append(document.createTextNode("This code can expire at any time. Start a new request in Lomi if it expires."));
     return;
   }
 
@@ -114,7 +155,7 @@ function showExpiry(value: string | undefined) {
   const time = document.createElement("time");
   time.dateTime = expiryDate?.toISOString() ?? "";
   time.textContent = expiry;
-  copy.append(time, document.createTextNode(". Lomi desktop will confirm when sign-in is complete."));
+  copy.append(time, document.createTextNode(". Return to Lomi after making your decision."));
 }
 
 async function verifyCode(value: string) {
@@ -124,6 +165,8 @@ async function verifyCode(value: string) {
     return;
   }
 
+  resetReview();
+  const generation = reviewGeneration;
   currentCode = value;
   clearCodeError();
   codeInput.value = formatDeviceCode(value);
@@ -140,21 +183,46 @@ async function verifyCode(value: string) {
   try {
     // Device-code verification is state changing on the server. It must only run after this explicit submit.
     const result = await authClient.device({ query: { user_code: value } });
+    if (generation !== reviewGeneration || !currentUser) return;
     if (result.error) throw Object.assign(new Error("DEVICE_VERIFY_FAILED"), { code: result.error.error });
 
     const data = result.data as DeviceVerification | null;
+    if (data && data.purpose !== undefined && data.purpose !== "host_enrollment") throw new Error("UNKNOWN_PURPOSE");
     if (!data || data.status !== "pending") {
-      window.location.assign(`/device/result?status=${encodeURIComponent(data?.status === "denied" ? "denied" : data?.status === "approved" ? "approved" : "expired")}`);
+      window.location.assign(`/device/result?status=${encodeURIComponent(data?.purpose === "host_enrollment" ? "expired" : data?.status === "denied" ? "denied" : data?.status === "approved" ? "approved" : "expired")}`);
       return;
     }
     if (normalizeDeviceCode(data.user_code ?? "") !== value) {
       throw new Error("DEVICE_CODE_MISMATCH");
     }
-    if (!data.client_id || !/^lomi-desktop(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?$/i.test(data.client_id)) {
+    const host = data.purpose === "host_enrollment";
+    if (typeof data.client_id !== "string" || !data.client_id.trim() || data.client_id.length > 256
+      || (!host && !/^lomi-desktop(?:-[a-z0-9]+(?:-[a-z0-9]+)*)?$/i.test(data.client_id))) {
       throw new Error("UNKNOWN_CLIENT");
     }
 
-    if (reviewClient) reviewClient.textContent = "Lomi desktop";
+    if (data.expiresAt && !formatExpiry(data.expiresAt)) throw new Error("DEVICE_EXPIRED");
+    if (host) {
+      if (typeof data.reviewerUserId !== "string" || !data.reviewerUserId.trim()) {
+        throw new Error("MISSING_REVIEWER");
+      }
+      if (data.reviewerUserId !== currentUser.user.id) {
+        // A different tab may have changed the cookie since the displayed account was loaded.
+        // Refresh only the account display; claiming the code again requires another explicit submit.
+        await checkSession(true);
+        return;
+      }
+    }
+    currentPurpose = host ? "host_enrollment" : null;
+    reviewedCode = value;
+    reviewedUserId = currentUser.user.id;
+    if (reviewClient) reviewClient.textContent = host ? "Lomi Remote host" : "Lomi desktop";
+    if (heading && host) heading.textContent = "Authorize this host";
+    approve.textContent = host ? "Authorize this host" : "Approve this device";
+    if (hostConsent) hostConsent.hidden = !host;
+    if (safetyCopy) safetyCopy.textContent = host
+      ? "Only authorize a host you just started. Check that the code above exactly matches the code on your host. This authorizes the host for the selected Lomi account."
+      : "Only approve a request you just started. Check that the code above exactly matches Lomi desktop. This connects the app to your Lomi account; it does not grant access to private GitHub repositories.";
     reviewCode.textContent = formatDeviceCode(value);
     showExpiry(data.expiresAt);
     codeForm.hidden = true;
@@ -162,9 +230,13 @@ async function verifyCode(value: string) {
     setStatus("The code is valid. Review the request before approving it.", "success");
     approve.focus();
   } catch (error) {
-    const message = error instanceof Error && error.message === "UNKNOWN_CLIENT"
-      ? "This request came from an unrecognized app. Close this page and start a new request in Lomi desktop."
-      : explainDeviceError(error);
+    if (generation !== reviewGeneration) return;
+    resetReview();
+    const message = error instanceof Error && ["UNKNOWN_CLIENT", "UNKNOWN_PURPOSE"].includes(error.message)
+      ? "This request came from an unrecognized app. Close this page and start a new request in Lomi."
+      : error instanceof Error && error.message === "MISSING_REVIEWER"
+        ? "We couldn’t confirm the account for this host. Check the code again."
+        : explainDeviceError(error);
     codeInput.disabled = false;
     if (submit) {
       submit.disabled = false;
@@ -178,7 +250,13 @@ async function verifyCode(value: string) {
 }
 
 async function finishDeviceAction(action: "approve" | "deny") {
-  if (!currentCode || !approve || !deny) return;
+  if (!currentUser || !currentCode || reviewedCode !== currentCode || !approve || !deny) return;
+  if (currentPurpose === "host_enrollment" && reviewedUserId !== currentUser.user.id) {
+    void checkSession(true);
+    return;
+  }
+  const purpose = currentPurpose;
+  const generation = reviewGeneration;
   approve.disabled = true;
   deny.disabled = true;
   approve.setAttribute("aria-busy", "true");
@@ -189,9 +267,13 @@ async function finishDeviceAction(action: "approve" | "deny") {
     const result = action === "approve"
       ? await authClient.device.approve({ userCode: currentCode })
       : await authClient.device.deny({ userCode: currentCode });
+    if (generation !== reviewGeneration || !currentUser) return;
     if (result.error) throw Object.assign(new Error("DEVICE_ACTION_FAILED"), { code: result.error.error });
-    window.location.assign(`/device/result?status=${action === "approve" ? "approved" : "denied"}`);
+    resetReview();
+    window.location.assign(`/device/result?status=${action === "approve" ? "approved" : "denied"}${purpose === "host_enrollment" ? "&purpose=host_enrollment" : ""}`);
   } catch (error) {
+    if (generation !== reviewGeneration) return;
+    resetReview();
     const message = explainDeviceError(error);
     approve.disabled = false;
     deny.disabled = false;
@@ -216,11 +298,12 @@ async function start() {
   }
 
   if (hadCode && !initialCode) {
-    setCodeError("Enter a complete 8-character code from Lomi desktop.");
+    setCodeError("Enter a complete 8-character code from Lomi.");
   }
 
   if (codeForm && codeInput) {
     codeInput.addEventListener("input", () => {
+      resetReview();
       clearCodeError();
       const normalized = normalizeDeviceCode(codeInput.value);
       if (normalized) {
@@ -233,7 +316,7 @@ async function start() {
       event.preventDefault();
       const normalized = normalizeDeviceCode(codeInput.value);
       if (!normalized) {
-        setCodeError("Enter all 8 characters from the code shown in Lomi desktop.");
+        setCodeError("Enter all 8 characters from the code shown in Lomi.");
         return;
       }
       void verifyCode(normalized);
@@ -247,6 +330,7 @@ async function start() {
     const normalized = codeInput ? normalizeDeviceCode(codeInput.value) : currentCode;
     currentCode = normalized ?? currentCode;
     if (currentCode && loginLink) loginLink.href = buildLoginUrl(`/device?user_code=${encodeURIComponent(currentCode)}`);
+    resetReview();
     switchAccount.disabled = true;
     setStatus("Signing out of this browser…", "info");
     try {
@@ -268,7 +352,10 @@ async function start() {
   await checkSession();
 }
 
-async function checkSession() {
+async function checkSession(accountChanged = false) {
+  resetReview();
+  const generation = reviewGeneration;
+  currentUser = null;
   if (retrySessionCheck) {
     retrySessionCheck.disabled = true;
     retrySessionCheck.setAttribute("aria-busy", "true");
@@ -281,15 +368,19 @@ async function checkSession() {
 
   try {
     const user = await apiRequest<MeResponse>("/v1/me");
+    if (generation !== reviewGeneration) return;
     if (!user.user || user.user.status !== "active") {
       currentUser = null;
       setStatus("This account cannot review a device sign-in right now.", "danger");
       return;
     }
     showSession(user);
-    setStatus("Check that the code came from the Lomi desktop app you just opened.", "info");
+    setStatus(accountChanged
+      ? "The signed-in account changed. Review the account above, then check the code again."
+      : "Check that the code came from the Lomi request you just started.", "info");
     if (codeInput) codeInput.disabled = false;
   } catch (error) {
+    if (generation !== reviewGeneration) return;
     if (typeof error === "object" && error !== null && "code" in error && error.code === "SESSION_REQUIRED") {
       showNoSession();
       return;
@@ -297,6 +388,7 @@ async function checkSession() {
     setStatus("We couldn’t check your Lomi session. Check your connection and try again.", "danger");
     if (retryWrap) retryWrap.hidden = false;
   } finally {
+    if (generation !== reviewGeneration) return;
     if (retrySessionCheck) {
       retrySessionCheck.disabled = false;
       retrySessionCheck.removeAttribute("aria-busy");

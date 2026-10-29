@@ -68,6 +68,28 @@ import BaseLayout from "../layouts/BaseLayout.astro";
             <button id="revoke-all-sessions" class="button button-danger button-small" type="button">Revoke all</button>
           </div>
         </section>
+
+        <section class="account-card panel hosts-card" aria-labelledby="hosts-title">
+          <div class="section-heading sessions-heading">
+            <div>
+              <span class="section-kicker">Remote access</span>
+              <h2 id="hosts-title">Remote hosts</h2>
+              <p class="section-description">Review the host installations authorized for this account. Online status and shared workspaces are not observed here. Revoking a host blocks its Remote authorization; it does not delete projects or files.</p>
+            </div>
+            <button id="refresh-hosts" class="button button-secondary button-small" type="button">Refresh</button>
+          </div>
+          <p id="host-list-status" class="loading-line" role="status" aria-live="polite">Loading Remote hosts…</p>
+          <ul id="hosts-list" class="sessions-list" aria-label="Authorized Remote hosts"></ul>
+          <div id="hosts-empty" class="sessions-empty" hidden>
+            <span class="empty-mark" aria-hidden="true">✓</span>
+            <strong>No Remote hosts found</strong>
+            <span>Hosts approved for this account will appear here.</span>
+          </div>
+          <div class="host-list-actions">
+            <button id="load-more-hosts" class="button button-secondary button-small" type="button" hidden>Load next hosts</button>
+            <button id="first-hosts-page" class="button button-secondary button-small" type="button" hidden>Back to first page</button>
+          </div>
+        </section>
       </div>
 
     </section>
@@ -313,12 +335,90 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     color: var(--danger);
   }
 
+  .hosts-card .session-error {
+    color: var(--danger);
+  }
+
   .sessions-list {
     display: flex;
     margin: 0;
     flex-direction: column;
     padding: 0;
     list-style: none;
+  }
+
+  .host-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    border-top: 1px solid var(--line);
+    padding: 15px 0;
+  }
+
+  .host-info {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .host-title-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .host-title-row strong {
+    overflow-wrap: anywhere;
+    font-size: 12px;
+  }
+
+  .host-meta {
+    color: var(--text-muted);
+    font-size: 10px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+  }
+
+  .host-enrollment-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .host-state {
+    display: inline-flex;
+    min-height: 21px;
+    align-items: center;
+    border-radius: 99px;
+    background: var(--surface-soft);
+    color: var(--text-muted);
+    padding: 0 8px;
+    font-size: 9px;
+    font-weight: 800;
+  }
+
+  .host-state-authorized {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+
+  .host-state-revoked,
+  .host-state-expired {
+    background: var(--warning-bg);
+    color: var(--danger);
+  }
+
+  .host-list-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 7px;
   }
 
   .sessions-empty {

@@ -3,6 +3,21 @@ const remoteOrigins = new Set([
   "https://remote.lomi.dev",
   "https://remote-staging.lomi.dev",
 ]);
+export type RemoteConsentKind = "account" | "workspace";
+
+/** Accept only the two scope sets issued by the Remote login flow. */
+export function validateRemoteScope(value: unknown): RemoteConsentKind | null {
+  if (!Array.isArray(value)) return null;
+  if (value.length === 1 && value[0] === "remote:account:read") return "account";
+  if (
+    value.length === 2 &&
+    value[0] === "remote:account:read" &&
+    value[1] === "remote:v3:consumer"
+  )
+    return "workspace";
+  return null;
+}
+
 export function readRemoteRequest(search: string, href: string): string | null {
   if (href.includes("#")) return null;
   return requestPattern.exec(search)?.[1] ?? null;

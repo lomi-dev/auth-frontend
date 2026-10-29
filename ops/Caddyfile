@@ -19,7 +19,7 @@
 		Strict-Transport-Security "max-age=31536000"
 		?Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data: https://avatars.githubusercontent.com; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'"
 	}
-	@api path /api/auth/* /v1/* /health/*
+	@api path /api/auth/* /v1/* /health/* /v2/remote/consumer-authorizations /v2/remote/consumer-authorizations/* /v2/remote/consumer-windows/* /v2/remote/host-authorizations/* /v2/remote/hosts /v2/remote/hosts/* /v2/remote/enrollments /v2/remote/enrollments/*
 	handle @api {
 		request_body {
 			max_size 16KB

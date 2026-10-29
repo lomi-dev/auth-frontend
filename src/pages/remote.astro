@@ -17,6 +17,10 @@ import BaseLayout from '../layouts/BaseLayout.astro';
           <p id="remote-github" class="remote-account-login" hidden></p>
         </div>
       </div>
+      <section class="remote-access-note" aria-labelledby="remote-access-title">
+        <h2 id="remote-access-title">About this access</h2>
+        <p id="remote-access-description">Signing in lets Lomi Remote show hosts linked to your account. To use a project or terminal, its host must already be authorized for your account and sharing must be enabled on that host. This sign-in doesn’t authorize a new host or enable sharing.</p>
+      </section>
       <button id="remote-approve" class="button button-primary button-full" type="button">Continue</button>
       <button id="remote-deny" class="remote-cancel" type="button">Cancel</button>
     </div>
@@ -35,6 +39,9 @@ import BaseLayout from '../layouts/BaseLayout.astro';
   .remote-account-info { min-width: 0; }
   .remote-account-name { margin: 0; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
   .remote-account-login { margin: 3px 0 0; color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; }
+  .remote-access-note { margin: 0 0 20px; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; background: var(--surface); text-align: left; }
+  .remote-access-note h2 { margin: 0 0 5px; font-size: 13px; font-weight: 600; }
+  .remote-access-note p { margin: 0; color: var(--text-muted); font-size: 13px; line-height: 1.5; text-wrap: pretty; }
   .remote-cancel { min-height: 44px; margin-top: 8px; border: 0; border-radius: 9px; padding: 0 16px; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 12px; }
   .remote-cancel:hover { color: var(--text); }
   #remote-error { margin: 16px 0 0; text-align: left; text-wrap: pretty; }

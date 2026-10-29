@@ -3,12 +3,14 @@ export interface ApiErrorBody {
     code?: string;
     requestId?: string;
   };
+  effect?: "none" | "unknown";
 }
 
 export interface ApiError extends Error {
   code: string;
   requestId: string | null;
   status: number | null;
+  effect: "none" | "unknown" | null;
 }
 
 export interface CurrentUser {
@@ -45,19 +47,65 @@ export interface SessionListResponse {
   nextCursor: string | null;
 }
 
-function makeApiError(code: string, status: number | null, requestId: string | null): ApiError {
+export type HostInventoryState = "enrollment-incomplete" | "revoked" | "expired" | "authorized";
+
+export interface PendingHostEnrollment {
+  enrollmentId: string;
+  approvedAccountEpoch: string;
+  fingerprint: string;
+  expiresAt: string;
+  currentHostEpoch: string | null;
+}
+
+export interface AccountHost {
+  hostId: string;
+  fingerprint: string;
+  accessEpoch: string | null;
+  finalized: boolean;
+  authorization: {
+    id: string;
+    hostAccessEpoch: string;
+    revoked: boolean;
+    confirmed: boolean;
+    expiresAt: string;
+    current: boolean;
+  } | null;
+  pendingEnrollments: PendingHostEnrollment[];
+  connectionStatus: "unknown";
+  sharingStatus: "unknown";
+  state: HostInventoryState;
+  revocable: boolean;
+}
+
+export interface HostInventoryResponse {
+  hosts: AccountHost[];
+  nextCursor: string | null;
+}
+
+function makeApiError(code: string, status: number | null, requestId: string | null, effect: "none" | "unknown" | null = null): ApiError {
   const error = new Error(code) as ApiError;
   error.code = code;
   error.status = status;
   error.requestId = requestId;
+  error.effect = effect;
   return error;
 }
 
 function parseErrorBody(value: unknown): ApiErrorBody {
-  if (typeof value !== "object" || value === null || !("error" in value)) return {};
-  const error = value.error;
-  if (typeof error !== "object" || error === null) return {};
-  return { error: error as ApiErrorBody["error"] };
+  if (typeof value !== "object" || value === null) return {};
+  const record = value as Record<string, unknown>;
+  if ("error" in value) {
+    const error = record.error;
+    if (typeof error === "object" && error !== null) {
+      const effect = record.effect === "none" || record.effect === "unknown" ? record.effect : undefined;
+      return { error: error as ApiErrorBody["error"], ...(effect ? { effect } : {}) };
+    }
+  }
+  if (typeof record.code === "string" && /^[A-Z][A-Z0-9_]{1,63}$/.test(record.code)) {
+    const effect = record.effect === "none" || record.effect === "unknown" ? record.effect : undefined;
+    return { error: { code: record.code }, ...(effect ? { effect } : {}) };
+  }
+  return {};
 }
 
 export async function apiRequest<T>(
@@ -92,7 +140,7 @@ export async function apiRequest<T>(
     const body = contentType.includes("application/json")
       ? parseErrorBody(await response.json().catch(() => null))
       : {};
-    throw makeApiError(body.error?.code ?? `HTTP_${response.status}`, response.status, body.error?.requestId ?? null);
+    throw makeApiError(body.error?.code ?? `HTTP_${response.status}`, response.status, body.error?.requestId ?? null, body.effect ?? null);
   }
 
   if (response.status === 204) return undefined as T;
@@ -110,9 +158,15 @@ export function userFacingError(error: unknown): { message: string; requestId: s
     NETWORK_ERROR: "We couldn’t reach Lomi. Check your connection and try again.",
     SERVICE_UNAVAILABLE: "Lomi is temporarily unavailable. Try again shortly.",
     RATE_LIMITED: "Too many requests. Wait a moment, then try again.",
+    RESOURCE_EXHAUSTED: "This host has too many pending setups to show at once. Withdraw individual setups and refresh the list.",
     SESSION_REQUIRED: "Your session has ended. Sign in to continue.",
+    AUTH_REQUIRED: "Sign in again to manage Remote hosts.",
     ACCOUNT_SUSPENDED: "This Lomi account is currently unavailable.",
     FORBIDDEN: "You don’t have permission to do that.",
+    SCOPE_DENIED: "You don’t have permission to do that.",
+    INVALID_ARGUMENT: "The Remote host information changed. Refresh the list before continuing.",
+    OUTCOME_UNKNOWN: "Lomi could not confirm the result. Check the current Remote host list before acting again.",
+    STALE_STATE: "The pending setup changed before Lomi withdrew it. Refresh the host list before continuing.",
     NOT_FOUND: "That session could not be found. It may have already been removed.",
     VALIDATION_FAILED: "Check the information and try again.",
     REAUTH_REQUIRED: "Verify your GitHub account again to continue.",

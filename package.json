@@ -10,7 +10,8 @@
     "check": "astro check",
     "check:static-output": "bun run scripts/check-static-output.ts",
     "test": "bun test tests/*.test.ts",
-    "test:e2e": "bun run build && playwright test"
+    "test:e2e": "bun run build && playwright test",
+    "test:e2e:integration": "node node_modules/@playwright/test/cli.js test --config playwright.integration.config.ts"
   },
   "dependencies": {
     "astro": "7.3.5",

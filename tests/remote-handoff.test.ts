@@ -3,12 +3,34 @@ import {
   readRemoteRequest,
   validateRemoteCallback,
   validateRemoteOrigin,
+  validateRemoteScope,
 } from "../src/lib/remote-handoff";
 import { resolveReturnDestination } from "../src/lib/return-destination";
 const id = "A".repeat(43);
 const origin = "https://remote.lomi.dev";
 const callback = `${origin}/auth/callback?code=${id}&state=${id}`;
 describe("Remote consent handoff", () => {
+  test("accepts only the legacy and browser workspace consent scope sets", () => {
+    expect(validateRemoteScope(["remote:account:read"])).toBe("account");
+    expect(
+      validateRemoteScope(["remote:account:read", "remote:v3:consumer"]),
+    ).toBe("workspace");
+
+    for (const invalid of [
+      null,
+      undefined,
+      "remote:account:read",
+      {},
+      [],
+      ["remote:v3:consumer"],
+      ["remote:account:read", "remote:account:read"],
+      ["remote:v3:consumer", "remote:account:read"],
+      ["remote:account:read", "remote:v3:consumer", "terminal:control"],
+      ["remote:account:read", 1],
+    ])
+      expect(validateRemoteScope(invalid)).toBeNull();
+  });
+
   test("allows only the registered local pair while preserving production restrictions", () => {
     const localIdentity = "http://localhost:4321";
     const localRemote = "http://localhost:4322";

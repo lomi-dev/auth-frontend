@@ -3,8 +3,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 ---
 
 <BaseLayout
-  title="Connect Lomi desktop"
-  description="Review and approve a Lomi desktop sign-in request."
+  title="Connect to Lomi"
+  description="Review a Lomi device request before approving it."
   pageClass="page-device"
   currentPage="device"
 >
@@ -14,8 +14,8 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <svg viewBox="0 0 32 32" focusable="false"><path d="M9 5.5h14A2.5 2.5 0 0 1 25.5 8v10A2.5 2.5 0 0 1 23 20.5h-5.5l.75 3H21v2H11v-2h2.75l.75-3H9A2.5 2.5 0 0 1 6.5 18V8A2.5 2.5 0 0 1 9 5.5Zm-.5 2.5v10h15V8h-15Z" /></svg>
       </span>
       <span class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Device sign-in</span>
-      <h1 id="device-title">Connect <span class="serif-accent">Lomi</span> desktop</h1>
-      <p class="copy">Confirm the short code shown in the Lomi app to connect this device to your account.</p>
+      <h1 id="device-title">Connect to <span class="serif-accent">Lomi</span></h1>
+      <p class="copy">Check your Lomi code, then review the request before connecting it to your account.</p>
     </div>
 
     <p id="device-status" class="notice notice-info status-message" role="status" aria-live="polite">
@@ -27,7 +27,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
 
     <section id="device-no-session" class="device-state" hidden aria-labelledby="device-sign-in-title">
       <h2 id="device-sign-in-title">Sign in to continue</h2>
-      <p class="muted">Use the GitHub account you want to connect to Lomi desktop.</p>
+      <p class="muted">Use the GitHub account you want to connect to Lomi.</p>
       <a id="device-login-link" class="button button-primary button-full" href="/login">Sign in with GitHub</a>
       <p class="device-footnote">After sign-in, you’ll return here to check the code.</p>
     </section>
@@ -40,7 +40,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       </div>
 
       <form id="device-code-form" class="device-code-form" method="post" action="/device">
-        <label class="field-label" id="code-title" for="device-code">Enter the code from Lomi desktop</label>
+        <label class="field-label" id="code-title" for="device-code">Enter the code from Lomi</label>
         <div class="code-input-row">
           <input
             class="text-input code-input"
@@ -64,7 +64,7 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <p id="device-code-error" class="field-error" role="alert" hidden></p>
       </form>
 
-      <div id="device-review" class="device-review" hidden aria-labelledby="review-title">
+      <div id="device-review" class="device-review" hidden aria-label="Request details">
         <div class="review-divider"><span>REQUEST DETAILS</span></div>
         <div class="review-app">
           <span class="review-app-icon" aria-hidden="true"><img src="/icons/lomi-v1.3.svg" alt="" width="18" height="18" /></span>
@@ -78,8 +78,12 @@ import BaseLayout from "../layouts/BaseLayout.astro";
         <div id="review-expiry" class="notice notice-warning review-expiry">
           <div class="notice-row"><span class="notice-mark" aria-hidden="true">!</span><span><strong>Keep your code private.</strong> Device codes expire automatically. Lomi desktop will tell you if this one has expired.</span></div>
         </div>
-        <div class="notice notice-info device-safety-note">
+        <div id="device-safety-note" class="notice notice-info device-safety-note">
           <div class="notice-row"><span class="notice-mark" aria-hidden="true">i</span><span><strong>Only approve a request you just started.</strong> Check that the code above exactly matches Lomi desktop. This connects the app to your Lomi account; it does not grant access to private GitHub repositories.</span></div>
+        </div>
+        <div id="host-consent" hidden>
+          <p class="copy">Signing out of this browser will not remove this host’s authorization.</p>
+          <p class="copy">Projects are shared only when sharing is enabled on the host.</p>
         </div>
         <div class="device-actions">
           <button id="approve-device" class="button button-primary button-full" type="button">Approve this device</button>

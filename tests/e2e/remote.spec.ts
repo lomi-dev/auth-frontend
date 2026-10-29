@@ -31,6 +31,7 @@ for (const width of [1280, 375]) {
     await expect(page.getByRole("heading", { name: "Log in to Remote" })).toBeVisible();
     await expect(page.locator("#remote-avatar")).toBeVisible();
     await expect(page.getByText("Ada Lovelace", { exact: true })).toBeVisible();
+    await expect(page.getByRole("region", { name: "About this access" })).toContainText("doesn’t authorize a new host or enable sharing");
     await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
     await expect(page.locator("#remote-status")).toBeHidden();
     expect(referer).toBeUndefined();
@@ -96,7 +97,18 @@ for (const invalid of ["invalid", `${requestId}&extra=1`, `${requestId}#fragment
     expect(count).toBe(0);
   });
 }
-for (const invalid of [{ application: "Other app" }, { origin: "https://evil.example" }, { scope: ["remote:account:read", "terminal:control"] }, { scope: ["terminal:control"] }, { expiresAt: "2000-01-01T00:00:00Z" }, { expiresAt: "invalid" }]) {
+for (const invalid of [
+  { application: "Other app" },
+  { origin: "https://evil.example" },
+  { scope: ["remote:account:read", "terminal:control"] },
+  { scope: ["terminal:control"] },
+  { scope: ["remote:account:read", "remote:account:read"] },
+  { scope: ["remote:account:read", "remote:v3:consumer", "terminal:control"] },
+  { scope: ["remote:v3:consumer", "remote:account:read"] },
+  { scope: ["remote:account:read", 7] },
+  { expiresAt: "2000-01-01T00:00:00Z" },
+  { expiresAt: "invalid" },
+]) {
   test(`remote fails closed for invalid preview ${JSON.stringify(invalid)}`, async ({ page }) => {
     await mockAccount(page);
     await page.route("**/v1/remote-login/request?**", route => route.fulfill({ json: { ...preview, ...invalid } }));
@@ -112,14 +124,42 @@ test("remote keeps suspended account closed", async ({ page }) => {
   await expect(page.getByRole("alert")).toBeVisible();
   await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeHidden();
 });
-test("remote blocks unsafe completion callback and allows retry", async ({ page }) => {
+test("remote blocks unsafe completion callback and recovers honestly", async ({ page }) => {
   await mockAccount(page);
   await page.route("**/v1/remote-login/complete", route => route.fulfill({ json: { redirectUrl: "https://evil.example/auth/callback" } }));
   await page.goto(returnTo);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText("Try again");
+  await expect(page.getByRole("alert")).toContainText("may already have been handled");
   await expect(page).toHaveURL(returnTo);
   await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
+});
+
+test("remote workspace consent requires explicit approval", async ({ page }) => {
+  let approvals = 0;
+  await mockAccount(page);
+  await page.route("**/v1/remote-login/request?**", route =>
+    route.fulfill({ json: { ...preview, scope: ["remote:account:read", "remote:v3:consumer"] } }),
+  );
+  await page.route("**/v1/remote-login/complete", async route => {
+    approvals += 1;
+    expect(route.request().postDataJSON()).toEqual({ requestId });
+    await route.fulfill({ json: { redirectUrl: callback } });
+  });
+  await page.route(callback, route => route.fulfill({ body: "Remote callback received" }));
+
+  await page.goto(returnTo);
+  const access = page.getByRole("region", { name: "About this access" });
+  await expect(access).toContainText("register this browser with workspaces you choose");
+  await expect(access).toContainText(
+    "Each workspace still needs its host to share access and approve the connection",
+  );
+  const allow = page.getByRole("button", { name: "Allow access", exact: true });
+  await expect(allow).toBeEnabled();
+  expect(approvals).toBe(0);
+
+  await allow.click();
+  await expect(page).toHaveURL(callback);
+  expect(approvals).toBe(1);
 });
 test("remote Cancel explicitly denies with registered cancellation callback", async ({ page }) => {
   await mockAccount(page);

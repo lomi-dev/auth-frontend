@@ -51,7 +51,7 @@ test("device code is not checked on page load and approval waits for review", as
         user_code: "ABCD2345",
         status: "pending",
         client_id: "lomi-desktop-dev",
-        expiresAt: "2026-10-03T12:00:00.000Z",
+        expiresAt: new Date(Date.now() + 600_000).toISOString(),
       }),
     });
   });
@@ -88,9 +88,9 @@ test("invalid device code is rejected before any device lookup", async ({ page }
   });
 
   await page.goto("/device");
-  await page.getByLabel("Enter the code from Lomi desktop").fill("ABCD-0000");
+  await page.getByLabel("Enter the code from Lomi").fill("ABCD-0000");
   await page.getByRole("button", { name: "Check code" }).click();
-  await expect(page.getByRole("alert")).toHaveText("Enter all 8 characters from the code shown in Lomi desktop.");
+  await expect(page.getByRole("alert")).toHaveText("Enter all 8 characters from the code shown in Lomi.");
   expect(verifyCount).toBe(0);
 });
 

@@ -32,6 +32,10 @@ The portal pins Better Auth 1.7.6 to match the API. TypeScript is pinned to 6.0.
 
 The Playwright suite mocks auth and account API responses. It verifies browser behavior and request headers, not real GitHub OAuth or production API behavior.
 
+An opt-in [synthetic auth-app integration suite](./tests/integration/browser/README.md)
+uses the real backend through a separately supervised local fixture. Run it with
+`test:e2e:integration` only after configuring that fixture; otherwise it skips.
+
 ## Release prerequisites
 
 Before public release, add the approved Lomi privacy notice and its support contact and retention details, then link it from sign-in. No approved policy URL is currently available in this repository.

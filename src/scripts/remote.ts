@@ -5,6 +5,7 @@ import {
   readRemoteRequest,
   validateRemoteCallback,
   validateRemoteOrigin,
+  validateRemoteScope,
 } from "../lib/remote-handoff";
 interface Preview {
   clientId: string;
@@ -23,6 +24,7 @@ const account = document.querySelector<HTMLParagraphElement>("#remote-account")!
 const github = document.querySelector<HTMLParagraphElement>("#remote-github")!;
 const avatar = document.querySelector<HTMLImageElement>("#remote-avatar")!;
 const avatarInitials = document.querySelector<HTMLSpanElement>("#remote-initials")!;
+const accessDescription = document.querySelector<HTMLParagraphElement>("#remote-access-description")!;
 const requestId = readRemoteRequest(location.search, location.href);
 let destination: string | null = null;
 let busy = false;
@@ -70,16 +72,20 @@ async function start() {
       `/v1/remote-login/request?request=${requestId}`,
     );
     destination = validateRemoteOrigin(preview.origin, location.origin);
+    const consent = validateRemoteScope(preview.scope);
     if (
       !destination ||
       preview.application !== "Lomi Remote" ||
-      !Array.isArray(preview.scope) ||
-      preview.scope.length !== 1 ||
-      preview.scope[0] !== "remote:account:read" ||
+      !consent ||
       Date.parse(preview.expiresAt) <= Date.now() ||
       !Number.isFinite(Date.parse(preview.expiresAt))
     )
       throw new Error("INVALID_REQUEST");
+    if (consent === "workspace") {
+      accessDescription.textContent =
+        "This lets Lomi Remote show hosts linked to your account and register this browser with workspaces you choose. Each workspace still needs its host to share access and approve the connection.";
+      approve.textContent = "Allow access";
+    }
     const name = me.user.displayName || me.user.githubLogin || "Lomi account";
     account.textContent = name;
     avatarInitials.textContent = initials(name);
@@ -145,7 +151,7 @@ async function finish(action: "approve" | "deny") {
   } catch {
     status.textContent = "The request could not be completed.";
     showError(
-      "Try again. If this request expired or was already handled, start sign-in again on Lomi Remote.",
+      "This request may already have been handled. If you weren’t redirected, start sign-in again on Lomi Remote.",
     );
     busy = false;
     approve.removeAttribute("aria-busy");
