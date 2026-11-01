@@ -2,6 +2,7 @@ import { apiRequest, initials, type MeResponse } from "../lib/api";
 import { authClient } from "../lib/auth-client";
 import { formatDeviceCode, normalizeDeviceCode, readDeviceCodeFromLocation } from "../lib/device-code";
 import { buildLoginUrl } from "../lib/return-destination";
+import { explainDeviceError } from "../lib/device-errors";
 
 interface DeviceVerification {
   user_code?: string;
@@ -115,17 +116,6 @@ function showNoSession() {
   const returnTo = currentCode ? `/device?user_code=${encodeURIComponent(currentCode)}` : "/device";
   if (loginLink) loginLink.href = buildLoginUrl(returnTo);
   setStatus("Sign in with GitHub before reviewing a device request.", "info");
-}
-
-function explainDeviceError(error: unknown): string {
-  if (typeof error === "object" && error !== null && "code" in error) {
-    const code = String(error.code);
-    if (code === "SESSION_REQUIRED" || code === "UNAUTHORIZED") return "Your session has ended. Sign in again before reviewing this request.";
-    if (code === "FORBIDDEN" || code === "access_denied") return "This code is already connected to a different Lomi account. Sign in to that account or start a new request in Lomi.";
-    if (code === "NETWORK_ERROR") return "We couldn’t reach Lomi. Check your connection and try again.";
-    if (code === "SERVICE_UNAVAILABLE") return "Lomi is temporarily unavailable. Try again shortly.";
-  }
-  return "This code is invalid, expired, or already handled. Start a new request in Lomi for a new code.";
 }
 
 function formatExpiry(value: string): string | null {
