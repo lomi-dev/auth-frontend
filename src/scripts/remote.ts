@@ -83,8 +83,8 @@ async function start() {
       throw new Error("INVALID_REQUEST");
     if (consent === "workspace") {
       accessDescription.textContent =
-        "This lets Lomi Remote show hosts linked to your account and register this browser with workspaces you choose. Each workspace still needs its host to share access and approve the connection.";
-      approve.textContent = "Allow access";
+        "Sign in to see the computers and workspaces shared with your Lomi account. Shared workspaces connect automatically.";
+      approve.textContent = "Continue";
     }
     const name = me.user.displayName || me.user.githubLogin || "Lomi account";
     account.textContent = name;
